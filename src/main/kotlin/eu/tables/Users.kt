@@ -9,6 +9,7 @@ object Users : LongIdTable() {
     val name = varchar("name", 255)
     val middleName = varchar("middle_name", 255).nullable()
     val surname = varchar("surname", 255)
+    val addresses = reference("address", Addresses).nullable()
 }
 
 class UserDAO(id: EntityID<Long>) : LongEntity(id) {
@@ -17,6 +18,5 @@ class UserDAO(id: EntityID<Long>) : LongEntity(id) {
     var name by Users.name
     var middleName by Users.middleName
     var surname by Users.surname
-
-    var addresses by AddressDAO via Addresses
+    val addresses by AddressDAO referrersOn Addresses.userId
 }

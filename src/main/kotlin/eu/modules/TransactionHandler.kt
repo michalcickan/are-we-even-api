@@ -10,17 +10,25 @@ import org.jetbrains.exposed.sql.SchemaUtils
 import org.jetbrains.exposed.sql.transactions.transaction
 import org.koin.core.module.Module
 import org.koin.dsl.*
-import java.sql.Connection
-import java.sql.DriverManager
 
 interface ITransactionHandler {
     fun createTables()
     suspend fun <T> perform(block: () -> T): T
 }
 
-class TransactionHandler(private val connection: Connection) : ITransactionHandler {
+class TransactionHandler(private val environment: ApplicationEnvironment) : ITransactionHandler {
     private val database: Database by lazy {
-        Database.connect({ connection })
+        val url = environment.config.property("postgres.jdbcURL").getString()
+        val user = environment.config.property("postgres.user").getString()
+        val password = environment.config.property("postgres.password").getString()
+        val driver = environment.config.property("postgres.driverClassName").getString()
+
+        Database.connect(
+            url,
+            driver,
+            user,
+            password,
+        )
     }
 
     override fun createTables() {
@@ -37,13 +45,7 @@ class TransactionHandler(private val connection: Connection) : ITransactionHandl
 fun transactionHandlerModule(environment: ApplicationEnvironment): Module {
     return module {
         single<TransactionHandler> {
-            Class.forName(environment.config.property("postgres.driverClassName").getString())
-
-            val url = environment.config.property("postgres.jdbcURL").getString()
-            val user = environment.config.property("postgres.user").getString()
-            val password = environment.config.property("postgres.password").getString()
-
-            TransactionHandler(DriverManager.getConnection(url, user, password))
+            TransactionHandler(environment)
         }
     }
 }

@@ -1,5 +1,6 @@
 package eu.models.responses
 
+import eu.tables.UserDAO
 import kotlinx.serialization.Serializable
 
 @Serializable
@@ -8,8 +9,22 @@ data class User(
     val name: String,
     val middleName: String?,
     val surname: String,
-    val addresses: List<Address>?,
-)
+    val addresses: List<Address>,
+) {
+    companion object {
+        fun fromUserDAO(userDAO: UserDAO): User {
+            val addresses = userDAO.addresses.map { Address.fromAddressDAO(it) }
+            return User(userDAO.id.value, userDAO.name, userDAO.middleName, userDAO.surname, addresses)
+        }
+    }
+    fun toUserDAO(): UserDAO {
+        return UserDAO.new(id) {
+            this.name = this@User.name
+            this.middleName = this@User.middleName
+            this.surname = this@User.surname
+        }
+    }
+}
 
 /*
 https://www.baeldung.com/kotlin/json-convert-data-class
