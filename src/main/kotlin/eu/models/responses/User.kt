@@ -11,12 +11,6 @@ data class User(
     val surname: String,
     val addresses: List<Address>,
 ) {
-    companion object {
-        fun fromUserDAO(userDAO: UserDAO): User {
-            val addresses = userDAO.addresses.map { Address.fromAddressDAO(it) }
-            return User(userDAO.id.value, userDAO.name, userDAO.middleName, userDAO.surname, addresses)
-        }
-    }
     fun toUserDAO(): UserDAO {
         return UserDAO.new(id) {
             this.name = this@User.name
@@ -24,6 +18,17 @@ data class User(
             this.surname = this@User.surname
         }
     }
+}
+
+fun UserDAO.toUser(): User {
+    val addresses = this.addresses.map { it.toAddress() }
+    return User(
+        this.id.value,
+        this.name,
+        this.middleName,
+        this.surname,
+        addresses,
+    )
 }
 
 /*

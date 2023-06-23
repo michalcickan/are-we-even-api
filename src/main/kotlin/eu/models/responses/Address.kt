@@ -1,6 +1,5 @@
 package eu.models.responses
 
-import eu.services.toUser
 import eu.tables.AddressDAO
 import kotlinx.serialization.Serializable
 
@@ -11,20 +10,14 @@ data class Address(
     val city: String,
     val country: String,
     val userId: Long,
-) {
-    companion object {
-        fun fromAddressDAO(addressDAO: AddressDAO): Address {
-            return Address(
-                addressDAO.street,
-                addressDAO.zip,
-                addressDAO.city,
-                addressDAO.country,
-                addressDAO.userId.toUser().id,
-            )
-        }
-    }
+)
 
-    fun AddressDAO.toAddress(): Address {
-        return Address.fromAddressDAO(this)
-    }
+fun AddressDAO.toAddress(): Address {
+    return Address(
+        this.street,
+        this.zip,
+        this.city,
+        this.country,
+        this.userId.toUser().id,
+    )
 }
