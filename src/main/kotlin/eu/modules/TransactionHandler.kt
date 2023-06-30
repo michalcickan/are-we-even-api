@@ -1,5 +1,6 @@
 package eu.modules
 
+import LoginTypeTable
 import eu.tables.Addresses
 import eu.tables.Users
 import io.ktor.server.application.*
@@ -33,7 +34,7 @@ class TransactionHandler(private val environment: ApplicationEnvironment) : ITra
 
     override fun createTables() {
         transaction(database) {
-            SchemaUtils.create(Users, Addresses)
+            SchemaUtils.createMissingTablesAndColumns(Users, Addresses, LoginTypeTable)
         }
     }
 
@@ -44,7 +45,7 @@ class TransactionHandler(private val environment: ApplicationEnvironment) : ITra
 
 fun transactionHandlerModule(environment: ApplicationEnvironment): Module {
     return module {
-        single<TransactionHandler> {
+        single<ITransactionHandler> {
             TransactionHandler(environment)
         }
     }

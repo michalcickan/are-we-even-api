@@ -10,7 +10,7 @@ object Addresses : IntIdTable() {
     val zip = varchar("zip", 10)
     val city = varchar("city", 50)
     val country = varchar("country", 50)
-    val userId = reference("user_id", Users)
+    val user = reference("user", Users)
 }
 
 class AddressDAO(id: EntityID<Int>) : IntEntity(id) {
@@ -20,5 +20,5 @@ class AddressDAO(id: EntityID<Int>) : IntEntity(id) {
     val zip by Addresses.zip
     val city by Addresses.city
     val country by Addresses.country
-    val userId by UserDAO referencedOn Addresses.userId
+    var user by UserDAO referencedOn Addresses.user
 }

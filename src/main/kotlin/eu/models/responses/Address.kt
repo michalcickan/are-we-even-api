@@ -18,6 +18,6 @@ fun AddressDAO.toAddress(): Address {
         this.zip,
         this.city,
         this.country,
-        this.userId.toUser().id,
+        this.user.id.value,
     )
 }

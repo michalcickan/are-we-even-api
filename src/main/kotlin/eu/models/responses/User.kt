@@ -1,34 +1,47 @@
 package eu.models.responses
 
+import LoginType
+import LoginTypeDao
 import eu.tables.UserDAO
 import kotlinx.serialization.Serializable
 
 @Serializable
 data class User(
-    val id: Long,
+    val id: Long?,
     val name: String,
     val middleName: String?,
     val surname: String,
-    val addresses: List<Address>,
+    val addresses: List<Address>?,
+    val email: String,
+    val token: String?,
+    val loginType: LoginType?,
 ) {
     fun toUserDAO(): UserDAO {
         return UserDAO.new(id) {
             this.name = this@User.name
             this.middleName = this@User.middleName
             this.surname = this@User.surname
+            this.email = this@User.email
+            this.token = this@User.token
         }
     }
 }
 
 fun UserDAO.toUser(): User {
-    val addresses = this.addresses.map { it.toAddress() }
     return User(
-        this.id.value,
-        this.name,
-        this.middleName,
-        this.surname,
-        addresses,
+        id.value,
+        name,
+        middleName,
+        surname,
+        this.addresses.map { it.toAddress() },
+        email,
+        token,
+        loginType?.toLoginType(),
     )
+}
+
+fun LoginTypeDao.toLoginType(): LoginType {
+    return this.loginType
 }
 
 /*

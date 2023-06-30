@@ -1,6 +1,5 @@
 package eu.services
 
-import eu.models.parameters.UserParameters
 import eu.models.responses.User
 import eu.models.responses.toUser
 import eu.modules.ITransactionHandler
@@ -9,7 +8,7 @@ import eu.tables.UserDAO
 interface UserService {
     suspend fun getUsers(): List<User>
     suspend fun getUser(id: Long): User
-    suspend fun createUser(params: UserParameters): User
+    suspend fun createUser(params: User): User
 }
 
 class UserServiceImpl(private val transactionHandler: ITransactionHandler) : UserService {
@@ -20,13 +19,15 @@ class UserServiceImpl(private val transactionHandler: ITransactionHandler) : Use
         }
     }
 
-    override suspend fun createUser(params: UserParameters): User {
+    override suspend fun createUser(params: User): User {
         return transactionHandler.perform {
-            UserDAO.new {
-                name = params.name
-                surname = params.surname
-                middleName = params.middleName
-            }.toUser()
+            params.toUserDAO()
+            params
+//            UserDAO.new {
+//                name = params.name
+//                surname = params.surname
+//                middleName = params.middleName
+//            }.toUser()
         }
     }
 
