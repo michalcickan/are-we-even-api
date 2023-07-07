@@ -5,10 +5,9 @@ import com.google.api.client.googleapis.auth.oauth2.GoogleIdToken
 import com.google.api.client.googleapis.auth.oauth2.GoogleIdTokenVerifier
 import com.google.api.client.http.javanet.NetHttpTransport
 import com.google.api.client.json.gson.GsonFactory
-import eu.models.responses.User
 import eu.services.UserService
 import io.github.cdimascio.dotenv.dotenv
-import io.ktor.http.HttpStatusCode
+import io.ktor.http.*
 import io.ktor.server.application.*
 import io.ktor.server.request.*
 import io.ktor.server.response.*
@@ -18,13 +17,13 @@ import kotlinx.coroutines.async
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.Serializable
 import org.koin.ktor.ext.inject
-import java.util.Collections
+import java.util.*
 
 val env = dotenv()
 
 @Serializable
 data class LoginParameters(
-    val accessToken: String,
+    val idToken: String,
     val loginType: LoginType,
 )
 
@@ -39,23 +38,23 @@ fun Route.authRoutes() {
             val loginParameters = call.receive<LoginParameters>()
 
             // Verify the access token against Google OAuth2 server asynchronously
-            val response = async { verifyGoogleIdToken(loginParameters.accessToken) }
+            val response = async { verifyGoogleIdToken(loginParameters.idToken) }
             val googleIdToken = response.await()
             val payload = googleIdToken?.payload
             if (payload != null) {
                 val user = userService.createUser(
-                    User(
-                        null,
-                        payload.get("given_name").toString(),
-                        null,
-                        payload.get("family_name").toString(),
-                        null,
-                        payload.email,
-                        loginParameters.accessToken,
-                        loginParameters.loginType,
-                    ),
+                    payload.email,
+                    payload.get("given_name").toString(),
+                    null,
+                    payload.get("family_name").toString(),
                 )
-                call.respond(HttpStatusCode.OK, user)
+                val accessToken = userService.createAccessToken(
+                    loginParameters.idToken,
+                    loginParameters.loginType,
+                    user.id,
+                    null,
+                )
+                call.respond(HttpStatusCode.OK, accessToken)
             } else {
                 // Access token is invalid
                 call.respond(HttpStatusCode.Unauthorized, "Invalid id token")

@@ -7,25 +7,13 @@ import kotlinx.serialization.Serializable
 
 @Serializable
 data class User(
-    val id: Long?,
+    val id: Long,
     val name: String,
     val middleName: String?,
     val surname: String,
     val addresses: List<Address>?,
     val email: String,
-    val token: String?,
-    val loginType: LoginType?,
-) {
-    fun toUserDAO(): UserDAO {
-        return UserDAO.new(id) {
-            this.name = this@User.name
-            this.middleName = this@User.middleName
-            this.surname = this@User.surname
-            this.email = this@User.email
-            this.token = this@User.token
-        }
-    }
-}
+)
 
 fun UserDAO.toUser(): User {
     return User(
@@ -35,8 +23,6 @@ fun UserDAO.toUser(): User {
         surname,
         this.addresses.map { it.toAddress() },
         email,
-        token,
-        loginType?.toLoginType(),
     )
 }
 

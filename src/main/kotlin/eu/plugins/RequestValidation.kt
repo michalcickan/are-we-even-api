@@ -8,7 +8,7 @@ fun Application.configureRequestValidation() {
     install(RequestValidation) {
         validate<LoginParameters> { params ->
             when {
-                params.accessToken == null -> ValidationResult.Invalid("Access token must not null")
+                params.idToken == null -> ValidationResult.Invalid("Access token must not be null")
                 params.loginType == null -> ValidationResult.Invalid("Login type must not be null")
                 else -> ValidationResult.Valid
             }

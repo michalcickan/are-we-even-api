@@ -1,8 +1,8 @@
 package eu.modules
 
+import LoginTypeDao
 import LoginTypeTable
-import eu.tables.Addresses
-import eu.tables.Users
+import eu.tables.*
 import io.ktor.server.application.*
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -34,7 +34,16 @@ class TransactionHandler(private val environment: ApplicationEnvironment) : ITra
 
     override fun createTables() {
         transaction(database) {
-            SchemaUtils.createMissingTablesAndColumns(Users, Addresses, LoginTypeTable)
+            SchemaUtils.createMissingTablesAndColumns(
+                Users,
+                Addresses,
+                LoginTypeTable,
+                Owes,
+                Expenditures,
+                UserExpenditure,
+                AccessTokens,
+            )
+            LoginTypeDao.initializeTable()
         }
     }
 

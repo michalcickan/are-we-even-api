@@ -1,4 +1,5 @@
 package eu.plugins
+
 import eu.modules.redisModule
 import eu.modules.servicesModule
 import eu.modules.transactionHandlerModule
@@ -7,7 +8,7 @@ import org.koin.ktor.plugin.Koin
 
 fun Application.configureDependencyInjection() {
     install(Koin) {
-        // ?
+        // TODO: environment should be also injectable
         modules(redisModule, transactionHandlerModule(environment), servicesModule)
     }
 }
