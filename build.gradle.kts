@@ -7,6 +7,7 @@ val koin_version: String by project
 val postgres_version: String by project
 val exposed_version: String by project
 val google_api_version: String by project
+val spring_security_version: String by project
 
 plugins {
     kotlin("jvm") version "1.8.0"
@@ -50,6 +51,7 @@ dependencies {
     implementation("io.github.cdimascio:java-dotenv:5.2.2")
     implementation("io.ktor:ktor-server-auth:$ktor_version")
     implementation("io.ktor:ktor-server-auth-jwt:$ktor_version")
+    implementation("org.springframework.security:spring-security-crypto:$spring_security_version")
     testImplementation("io.ktor:ktor-server-tests-jvm:$ktor_version")
     testImplementation("org.jetbrains.kotlin:kotlin-test-junit:$kotlin_version")
 }

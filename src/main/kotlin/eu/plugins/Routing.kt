@@ -1,7 +1,7 @@
 package eu.plugins
 
 import eu.routes.authRoutes
-import eu.services.UserService
+import eu.services.IUserService
 import io.ktor.server.application.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
@@ -10,7 +10,7 @@ import org.koin.ktor.ext.inject
 
 fun Application.configureRouting() {
     val redis by inject<RedisStringCommands<String, String>>()
-    val userService by inject<UserService>()
+    val userService by inject<IUserService>()
 
     routing {
         authRoutes()

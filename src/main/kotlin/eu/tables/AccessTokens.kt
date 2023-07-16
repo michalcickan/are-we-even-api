@@ -13,7 +13,7 @@ object AccessTokens : IntIdTable() {
     val userId = reference("userId", Users)
 
     // service-based token.
-    val platformAgnosticToken = varchar("platformAgnosticToken", 2500)
+    val platformAgnosticToken = varchar("platformAgnosticToken", 2500).nullable()
     val accessToken = varchar("accessToken", 2500)
     val expiryDate = datetime("expiryDate").defaultExpression(CurrentDateTime)
     val loginType = reference("loginType", LoginTypeTable)

@@ -42,6 +42,7 @@ class TransactionHandler(private val environment: ApplicationEnvironment) : ITra
                 Expenditures,
                 UserExpenditure,
                 AccessTokens,
+                UserPasswords,
             )
             LoginTypeDao.initializeTable()
         }
