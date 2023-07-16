@@ -3,6 +3,7 @@ package eu.plugins
 import LoginType
 import eu.services.IValidationService
 import eu.services.LoginParameters
+import eu.services.RegistrationParameters
 import io.ktor.server.application.*
 import io.ktor.server.plugins.requestvalidation.*
 import org.koin.ktor.ext.inject
@@ -19,6 +20,16 @@ fun Application.configureRequestValidation() {
                 )
 
                 params.email != null && !validationService.validateEmail(params.email) -> ValidationResult.Invalid("Email is not in correct format")
+                else -> ValidationResult.Valid
+            }
+        }
+
+        validate<RegistrationParameters> { params ->
+            when {
+                params.email == null || params.password == null || !validationService.validateEmail(params.email) -> ValidationResult.Invalid(
+                    "Email or password is not correct",
+                )
+
                 else -> ValidationResult.Valid
             }
         }
