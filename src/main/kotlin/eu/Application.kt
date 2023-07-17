@@ -1,7 +1,10 @@
 package eu
 
 import eu.plugins.*
+import io.ktor.http.*
 import io.ktor.server.application.*
+import io.ktor.server.plugins.*
+import io.ktor.server.response.*
 
 fun main(args: Array<String>): Unit =
     io.ktor.server.netty.EngineMain.main(args)
@@ -12,7 +15,7 @@ fun Application.module() {
     configureDependencyInjection()
     configureRequestValidation()
     configureHTTP()
-    configureSecurity()
+    configureAuthentication()
     configureRouting()
     configureDatabases()
 }

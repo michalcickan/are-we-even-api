@@ -3,46 +3,40 @@ package eu.services
 import LoginType
 import com.google.api.client.googleapis.auth.oauth2.GoogleIdToken
 import com.google.api.client.googleapis.auth.oauth2.GoogleIdTokenVerifier
+import eu.models.parameters.LoginParameters
+import eu.models.parameters.RefreshTokenParameters
+import eu.models.parameters.RegistrationParameters
 import eu.models.responses.AccessToken
 import eu.models.responses.User
 import eu.routes.env
 import eu.routes.jsonFactory
 import eu.routes.transport
 import eu.utils.APIException
+import eu.utils.toDate
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.withContext
-import kotlinx.serialization.Serializable
 import org.springframework.security.crypto.password.PasswordEncoder
 import java.util.*
-
-@Serializable
-data class LoginParameters(
-    val idToken: String?,
-    val password: String?,
-    val email: String?,
-    val loginType: LoginType,
-)
-
-@Serializable
-data class RegistrationParameters(
-    val password: String,
-    val email: String,
-)
 
 interface IAuthService {
     suspend fun loginWith(parameters: LoginParameters): AccessToken
     suspend fun registerWith(parameters: RegistrationParameters): AccessToken
+    suspend fun recreateAccessToken(parameters: RefreshTokenParameters): AccessToken
 }
 
-class AuthService(private val userService: IUserService, private val passwordEncoder: PasswordEncoder) : IAuthService {
+class AuthService(
+    private val userService: IUserService,
+    private val passwordEncoder: PasswordEncoder,
+    private val jwtService: IJWTService,
+) : IAuthService {
     override suspend fun loginWith(parameters: LoginParameters): AccessToken {
         val user = when (parameters.loginType) {
             LoginType.GOOGLE -> loginWithGoogle(parameters.idToken)
             LoginType.EMAIL -> loginWithEmail(parameters.email, parameters.password)
             else -> null
         } ?: throw APIException.UserDoesNotExist
-        return userService.createAccessToken(
+        return jwtService.createAccessToken(
             parameters.idToken,
             parameters.loginType,
             user.id,
@@ -52,9 +46,22 @@ class AuthService(private val userService: IUserService, private val passwordEnc
 
     override suspend fun registerWith(parameters: RegistrationParameters): AccessToken {
         val user = userService.createUser(parameters.email, null, null, null)
-        // no need to add "salt", since library does it automatically
+        // no need to add "salt", library does it automatically
         userService.createUserPassword(user.id, passwordEncoder.encode(parameters.password))
-        return userService.createAccessToken(null, LoginType.EMAIL, user.id, null)
+        return jwtService.createAccessToken(null, LoginType.EMAIL, user.id, null)
+    }
+
+    override suspend fun recreateAccessToken(parameters: RefreshTokenParameters): AccessToken {
+        val refreshToken = jwtService.getRefreshToken(parameters.refreshToken) ?: throw APIException.TokenExpired
+        if (refreshToken.expiryDate.toDate() < Date()) {
+            throw APIException.TokenExpired
+        }
+        return jwtService.createAccessToken(
+            null,
+            LoginType.EMAIL,
+            refreshToken.user.id.value,
+            null,
+        )
     }
 
     private suspend fun loginWithGoogle(idToken: String?): User? {

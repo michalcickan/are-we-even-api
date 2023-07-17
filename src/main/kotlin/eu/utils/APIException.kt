@@ -8,4 +8,6 @@ sealed class APIException(val statusCode: HttpStatusCode, override val message: 
     object LoginTypeNeedsIdToken : APIException(HttpStatusCode.BadRequest, "Incorrect login values")
 
     object LoginNotMatch : APIException(HttpStatusCode.BadRequest, "Password or email don't match")
+
+    object TokenExpired : APIException(HttpStatusCode.BadRequest, "Token expired")
 }

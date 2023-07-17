@@ -1,16 +1,13 @@
 package eu.services
 
-import LoginType
-import LoginTypeDao
-import LoginTypeTable
-import eu.models.responses.AccessToken
 import eu.models.responses.User
-import eu.models.responses.toAccessToken
 import eu.models.responses.toUser
 import eu.modules.ITransactionHandler
-import eu.tables.*
+import eu.tables.UserDAO
+import eu.tables.UserPasswordDAO
+import eu.tables.UserPasswords
+import eu.tables.Users
 import eu.utils.APIException
-import java.time.LocalDateTime
 
 interface IUserService {
     suspend fun getUsers(): List<User>
@@ -30,13 +27,6 @@ interface IUserService {
         middleName: String?,
         surname: String?,
     )
-
-    suspend fun createAccessToken(
-        platformSpecificToken: String?,
-        loginType: LoginType,
-        userId: Long,
-        expiryDate: LocalDateTime?,
-    ): AccessToken
 
     suspend fun createUserPassword(
         userId: Long,
@@ -97,23 +87,6 @@ class UserService(
             user.surname = surname ?: user.surname
             user.middleName = middleName ?: user.middleName
             user.email = email ?: user.email
-        }
-    }
-
-    override suspend fun createAccessToken(
-        platformSpecificToken: String?,
-        loginType: LoginType,
-        userId: Long,
-        expiryDate: LocalDateTime?,
-    ): AccessToken {
-        return transactionHandler.perform {
-            AccessTokenDAO.new {
-                this.platformAgnosticToken = platformSpecificToken
-                this.accessToken = jwtService.generateToken(userId)
-                this.loginType = LoginTypeDao.find { LoginTypeTable.loginType eq loginType }.first()
-                this.user = UserDAO[userId]
-                this.expiryDate = expiryDate ?: LocalDateTime.now()
-            }.toAccessToken()
         }
     }
 
