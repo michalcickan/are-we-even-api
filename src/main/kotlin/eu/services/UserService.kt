@@ -1,12 +1,13 @@
 package eu.services
 
+import eu.models.parameters.CreateUserAddressParameters
+import eu.models.parameters.UpdateUserParameters
+import eu.models.responses.Address
 import eu.models.responses.User
+import eu.models.responses.toAddress
 import eu.models.responses.toUser
 import eu.modules.ITransactionHandler
-import eu.tables.UserDAO
-import eu.tables.UserPasswordDAO
-import eu.tables.UserPasswords
-import eu.tables.Users
+import eu.tables.*
 import eu.utils.APIException
 
 interface IUserService {
@@ -22,23 +23,21 @@ interface IUserService {
 
     suspend fun updateUser(
         userId: Long,
-        email: String?,
-        name: String?,
-        middleName: String?,
-        surname: String?,
+        params: UpdateUserParameters,
     )
 
-    suspend fun createUserPassword(
+    suspend fun storeUserPassword(
         userId: Long,
         password: String,
-    ): String
+    )
 
     suspend fun getPassword(userId: Long): String?
+
+    suspend fun addAddress(userId: Long, parameters: CreateUserAddressParameters): Address
 }
 
 class UserService(
     private val transactionHandler: ITransactionHandler,
-    private val jwtService: IJWTService,
     private val validationService: IValidationService,
 ) :
     IUserService {
@@ -70,35 +69,33 @@ class UserService(
 
     override suspend fun getUser(id: Long): User {
         return transactionHandler.perform {
-            UserDAO[id].toUser()
+            val addresses = AddressDAO.find { Addresses.user eq id }.toList()
+            UserDAO[id].toUser(addresses)
         }
     }
 
     override suspend fun updateUser(
         userId: Long,
-        email: String?,
-        name: String?,
-        middleName: String?,
-        surname: String?,
+        params: UpdateUserParameters,
     ) {
         return transactionHandler.perform {
             val user = UserDAO.findById(userId) ?: throw APIException.UserDoesNotExist
-            user.name = name ?: user.name
-            user.surname = surname ?: user.surname
-            user.middleName = middleName ?: user.middleName
-            user.email = email ?: user.email
+            user.name = params.name ?: user.name
+            user.surname = params.surname ?: user.surname
+            user.middleName = params.middleName ?: user.middleName
+            user.email = params.email ?: user.email
         }
     }
 
-    override suspend fun createUserPassword(
+    override suspend fun storeUserPassword(
         userId: Long,
         password: String,
-    ): String {
+    ) {
         return transactionHandler.perform {
             UserPasswordDAO.new {
                 this.userId = UserDAO[userId]
                 this.password = password
-            }.password
+            }
         }
     }
 
@@ -111,6 +108,18 @@ class UserService(
     override suspend fun getPassword(userId: Long): String? {
         return transactionHandler.perform {
             UserPasswordDAO.find { UserPasswords.userId eq userId }.singleOrNull()?.password
+        }
+    }
+
+    override suspend fun addAddress(userId: Long, params: CreateUserAddressParameters): Address {
+        return transactionHandler.perform {
+            AddressDAO.new {
+                this.city = params.city
+                this.user = UserDAO[userId]
+                this.zip = params.zip
+                this.street = params.street
+                this.country = params.country
+            }.toAddress()
         }
     }
 }

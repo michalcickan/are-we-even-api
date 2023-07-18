@@ -55,4 +55,10 @@ dependencies {
     implementation("io.ktor:ktor-server-status-pages:$ktor_version")
     testImplementation("io.ktor:ktor-server-tests-jvm:$ktor_version")
     testImplementation("org.jetbrains.kotlin:kotlin-test-junit:$kotlin_version")
+    testImplementation("io.mockk:mockk:1.12.0")
+    // Koin testing tools
+    testImplementation("io.insert-koin:koin-test:$koin_version")
+    // Needed JUnit version
+    testImplementation("io.insert-koin:koin-test-junit4:$koin_version")
+    testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.5.1")
 }

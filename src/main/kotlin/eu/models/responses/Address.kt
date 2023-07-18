@@ -9,7 +9,6 @@ data class Address(
     val zip: String,
     val city: String,
     val country: String,
-    val userId: Long,
 )
 
 fun AddressDAO.toAddress(): Address {
@@ -18,6 +17,5 @@ fun AddressDAO.toAddress(): Address {
         this.zip,
         this.city,
         this.country,
-        this.user.id.value,
     )
 }

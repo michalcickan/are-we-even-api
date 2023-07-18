@@ -3,6 +3,7 @@ package eu.services
 import LoginType
 import LoginTypeDao
 import LoginTypeTable
+import RefreshToken
 import com.auth0.jwt.JWT
 import com.auth0.jwt.JWTVerifier
 import com.auth0.jwt.algorithms.Algorithm
@@ -14,23 +15,26 @@ import eu.tables.AccessTokenDAO
 import eu.tables.RefreshTokenDAO
 import eu.tables.RefreshTokens
 import eu.tables.UserDAO
+import eu.utils.APIException
+import eu.utils.accessTokenExpiry
+import eu.utils.refreshTokenExpiry
+import eu.utils.toLocalDateTime
 import io.ktor.server.auth.jwt.*
-import java.time.LocalDateTime
-import java.util.*
+import toRefreshToken
 
 interface IJWTService {
     suspend fun createAccessToken(
         platformSpecificToken: String?,
         loginType: LoginType,
         userId: Long,
-        expiryDate: LocalDateTime?,
     ): AccessToken
 
-    suspend fun getRefreshToken(refreshToken: String): RefreshTokenDAO?
+    suspend fun getRefreshToken(refreshToken: String): RefreshToken?
 
     fun buildVerifierForToken(): JWTVerifier
 
     fun getJWTPrincipal(payload: Payload): JWTPrincipal?
+    fun getUserIdFromPrincipalPayload(principal: JWTPrincipal?): Long
 }
 
 class JWTService(
@@ -50,37 +54,44 @@ class JWTService(
     }
 
     override fun getJWTPrincipal(payload: Payload): JWTPrincipal? {
-        if (payload.getClaim(claim).asLong() != null) {
+        if (payload?.getClaim(claim)?.asLong() != null) {
             return JWTPrincipal(payload)
         }
         return null
+    }
+
+    override fun getUserIdFromPrincipalPayload(principal: JWTPrincipal?): Long {
+        return principal?.payload?.getClaim(claim)?.asLong() ?: throw APIException.TokenExpired
     }
 
     override suspend fun createAccessToken(
         platformSpecificToken: String?,
         loginType: LoginType,
         userId: Long,
-        expiryDate: LocalDateTime?,
     ): AccessToken {
         return transactionHandler.perform {
             val user = UserDAO[userId]
             val refreshToken = RefreshTokenDAO.new {
                 this.user = user
                 this.refreshToken = generateToken(userId, true)
+                this.expiryDate = refreshTokenExpiry().toLocalDateTime()
             }
             AccessTokenDAO.new {
                 this.platformAgnosticToken = platformSpecificToken
                 this.accessToken = generateToken(userId, false)
                 this.loginType = LoginTypeDao.find { LoginTypeTable.loginType eq loginType }.first()
                 this.user = UserDAO[userId]
-                this.expiryDate = expiryDate ?: LocalDateTime.now().plusHours(2)
+                this.expiryDate = accessTokenExpiry().toLocalDateTime()
             }.toAccessToken(refreshToken.refreshToken)
         }
     }
 
-    override suspend fun getRefreshToken(refreshToken: String): RefreshTokenDAO? {
+    override suspend fun getRefreshToken(refreshToken: String): RefreshToken? {
         return transactionHandler.perform {
-            RefreshTokenDAO.find { RefreshTokens.refreshToken eq refreshToken }.first()
+            RefreshTokenDAO
+                .find { RefreshTokens.refreshToken eq refreshToken }
+                .first()
+                .toRefreshToken()
         }
     }
 
@@ -97,13 +108,4 @@ class JWTService(
             .withExpiresAt(expiryDate)
             .sign(Algorithm.HMAC256(secret))
     }
-}
-
-private fun accessTokenExpiry(): Date {
-    return Date(System.currentTimeMillis() + 20 * 60 * 1000)
-}
-
-private fun refreshTokenExpiry(): Date {
-    val expiryDurationMillis = 90 * 24 * 60 * 60 * 1000L // 90 days in milliseconds
-    return Date(System.currentTimeMillis() + expiryDurationMillis)
 }

@@ -16,9 +16,9 @@ object Addresses : IntIdTable() {
 class AddressDAO(id: EntityID<Int>) : IntEntity(id) {
     companion object : IntEntityClass<AddressDAO>(Addresses)
 
-    val street by Addresses.street
-    val zip by Addresses.zip
-    val city by Addresses.city
-    val country by Addresses.country
+    var street by Addresses.street
+    var zip by Addresses.zip
+    var city by Addresses.city
+    var country by Addresses.country
     var user by UserDAO referencedOn Addresses.user
 }

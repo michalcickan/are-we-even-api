@@ -1,6 +1,5 @@
 package eu.plugins
 
-import LoginType
 import eu.models.parameters.LoginParameters
 import eu.models.parameters.RegistrationParameters
 import eu.models.responses.GenericResponse
@@ -18,12 +17,6 @@ fun Application.configureRequestValidation() {
     install(RequestValidation) {
         validate<LoginParameters> { params ->
             when {
-                params.loginType == null -> ValidationResult.Invalid("Login type must not be null")
-                params.loginType == LoginType.GOOGLE && params.idToken == null -> ValidationResult.Invalid("Id token must not be null")
-                params.loginType == LoginType.EMAIL && (params.email == null || params.password == null) -> ValidationResult.Invalid(
-                    "Password and email must not be null",
-                )
-
                 params.email != null && !validationService.validateEmail(params.email) -> ValidationResult.Invalid("Email is not in correct format")
                 else -> ValidationResult.Valid
             }

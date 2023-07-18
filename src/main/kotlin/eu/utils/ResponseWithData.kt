@@ -13,9 +13,14 @@ suspend inline fun ApplicationCall.respondWithError(statusCode: HttpStatusCode, 
     respond(statusCode, GenericResponse.createError<Unit>(message))
 }
 
-suspend inline fun <reified T : Any> handleRequest(call: ApplicationCall, block: suspend () -> T) {
+suspend inline fun <reified T : Any> handleRequestWithExceptions(call: ApplicationCall, block: suspend () -> T) {
     try {
-        call.respondWithData(block())
+        val result = block()
+        if (result is Unit) {
+            call.respond(HttpStatusCode.NoContent)
+        } else {
+            call.respondWithData(result)
+        }
     } catch (e: APIException) {
         call.respondWithError(e.statusCode, e.message)
     } catch (e: ContentTransformationException) {

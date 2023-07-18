@@ -2,6 +2,7 @@ package eu.models.responses
 
 import LoginType
 import LoginTypeDao
+import eu.tables.AddressDAO
 import eu.tables.UserDAO
 import kotlinx.serialization.Serializable
 
@@ -15,13 +16,13 @@ data class User(
     val email: String,
 )
 
-fun UserDAO.toUser(): User {
+fun UserDAO.toUser(addresses: List<AddressDAO>? = null): User {
     return User(
         id.value,
         name,
         middleName,
         surname,
-        this.addresses.map { it.toAddress() },
+        addresses?.map { it.toAddress() },
         email,
     )
 }

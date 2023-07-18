@@ -12,7 +12,6 @@ import eu.routes.env
 import eu.routes.jsonFactory
 import eu.routes.transport
 import eu.utils.APIException
-import eu.utils.toDate
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.withContext
@@ -20,7 +19,7 @@ import org.springframework.security.crypto.password.PasswordEncoder
 import java.util.*
 
 interface IAuthService {
-    suspend fun loginWith(parameters: LoginParameters): AccessToken
+    suspend fun loginWith(parameters: LoginParameters, loginType: LoginType): AccessToken
     suspend fun registerWith(parameters: RegistrationParameters): AccessToken
     suspend fun recreateAccessToken(parameters: RefreshTokenParameters): AccessToken
 }
@@ -30,44 +29,44 @@ class AuthService(
     private val passwordEncoder: PasswordEncoder,
     private val jwtService: IJWTService,
 ) : IAuthService {
-    override suspend fun loginWith(parameters: LoginParameters): AccessToken {
-        val user = when (parameters.loginType) {
-            LoginType.GOOGLE -> loginWithGoogle(parameters.idToken)
-            LoginType.EMAIL -> loginWithEmail(parameters.email, parameters.password)
+    override suspend fun loginWith(parameters: LoginParameters, loginType: LoginType): AccessToken {
+        validateLoginParameters(parameters, loginType)
+        val user = when (loginType) {
+            LoginType.GOOGLE -> loginWithGoogle(parameters.idToken!!)
+            LoginType.EMAIL -> loginWithEmail(parameters.email!!, parameters.password!!)
             else -> null
         } ?: throw APIException.UserDoesNotExist
         return jwtService.createAccessToken(
             parameters.idToken,
-            parameters.loginType,
+            loginType,
             user.id,
-            null,
         )
     }
 
     override suspend fun registerWith(parameters: RegistrationParameters): AccessToken {
         val user = userService.createUser(parameters.email, null, null, null)
         // no need to add "salt", library does it automatically
-        userService.createUserPassword(user.id, passwordEncoder.encode(parameters.password))
-        return jwtService.createAccessToken(null, LoginType.EMAIL, user.id, null)
+        userService.storeUserPassword(user.id, passwordEncoder.encode(parameters.password))
+        return jwtService.createAccessToken(
+            null,
+            LoginType.EMAIL,
+            user.id,
+        )
     }
 
     override suspend fun recreateAccessToken(parameters: RefreshTokenParameters): AccessToken {
         val refreshToken = jwtService.getRefreshToken(parameters.refreshToken) ?: throw APIException.TokenExpired
-        if (refreshToken.expiryDate.toDate() < Date()) {
+        if (refreshToken.expiryDate < Date()) {
             throw APIException.TokenExpired
         }
         return jwtService.createAccessToken(
             null,
             LoginType.EMAIL,
-            refreshToken.user.id.value,
-            null,
+            refreshToken.userId,
         )
     }
 
-    private suspend fun loginWithGoogle(idToken: String?): User? {
-        if (idToken == null) {
-            throw APIException.LoginTypeNeedsIdToken
-        }
+    private suspend fun loginWithGoogle(idToken: String): User? {
         val response = withContext(Dispatchers.IO) {
             async { verifyGoogleIdToken(idToken) }
         }
@@ -76,19 +75,16 @@ class AuthService(
         return when {
             payload != null -> userService.createUser(
                 payload.email,
-                payload.get("given_name").toString(),
+                payload["given_name"].toString(),
                 null,
-                payload.get("family_name").toString(),
+                payload["family_name"].toString(),
             )
 
             else -> null
         }
     }
 
-    private suspend fun loginWithEmail(email: String?, password: String?): User {
-        if (email == null || password == null) {
-            throw APIException.InvalidEmailFormat
-        }
+    private suspend fun loginWithEmail(email: String, password: String): User {
         val user = userService.getUser(email) ?: throw APIException.UserDoesNotExist
         val storedPassword = userService.getPassword(user.id)
         if (passwordEncoder.matches(password, storedPassword)) {
@@ -111,4 +107,20 @@ class AuthService(
                 null
             }
         }
+
+    private fun validateLoginParameters(params: LoginParameters, loginType: LoginType) {
+        when (loginType) {
+            LoginType.EMAIL -> {
+                if (params.email == null || params.password == null) {
+                    throw APIException.IncorrectLoginValues
+                }
+            }
+
+            LoginType.APPLE, LoginType.GOOGLE -> {
+                if (params.idToken == null) {
+                    throw APIException.IncorrectLoginValues
+                }
+            }
+        }
+    }
 }

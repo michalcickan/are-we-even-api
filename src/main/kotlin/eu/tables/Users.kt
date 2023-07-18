@@ -19,5 +19,4 @@ class UserDAO(id: EntityID<Long>) : LongEntity(id) {
     var middleName by Users.middleName
     var surname by Users.surname
     var email by Users.email
-    val addresses by AddressDAO referrersOn Addresses.user
 }
