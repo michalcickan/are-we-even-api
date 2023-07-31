@@ -1,7 +1,7 @@
 package eu.tables
 
 import LoginTypeDao
-import LoginTypeTable
+import LoginTypes
 import org.jetbrains.exposed.dao.IntEntity
 import org.jetbrains.exposed.dao.IntEntityClass
 import org.jetbrains.exposed.dao.id.EntityID
@@ -16,7 +16,7 @@ object AccessTokens : IntIdTable() {
     val platformAgnosticToken = varchar("platformAgnosticToken", 2500).nullable()
     val accessToken = varchar("accessToken", 2500)
     val expiryDate = datetime("expiryDate").defaultExpression(CurrentDateTime)
-    val loginType = reference("loginType", LoginTypeTable)
+    val loginType = reference("loginType", LoginTypes)
 }
 
 class AccessTokenDAO(id: EntityID<Int>) : IntEntity(id) {

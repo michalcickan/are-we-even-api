@@ -1,7 +1,9 @@
-package eu.models.responses
+package eu.models.responses.users
 
 import LoginType
 import LoginTypeDao
+import eu.models.responses.Address
+import eu.models.responses.toAddress
 import eu.tables.AddressDAO
 import eu.tables.UserDAO
 import kotlinx.serialization.Serializable

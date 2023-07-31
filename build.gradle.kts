@@ -61,4 +61,5 @@ dependencies {
     // Needed JUnit version
     testImplementation("io.insert-koin:koin-test-junit4:$koin_version")
     testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.5.1")
+    testImplementation("io.ktor:ktor-client-content-negotiation:$ktor_version")
 }

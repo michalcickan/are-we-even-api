@@ -1,5 +1,5 @@
+import eu.exceptions.APIException
 import eu.models.responses.GenericResponse
-import eu.utils.APIException
 import io.ktor.http.*
 import io.ktor.server.application.*
 import io.ktor.server.plugins.*

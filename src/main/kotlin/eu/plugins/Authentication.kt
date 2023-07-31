@@ -8,9 +8,13 @@ import io.ktor.server.auth.jwt.*
 import org.koin.ktor.ext.inject
 import respondWithError
 
-fun Application.configureAuthentication() {
+fun Application.configureAuthentication(testing: Boolean) {
     val jwtService by inject<IJWTService>()
-    val myRealm = environment.config.property("jwt.realm").getString()
+    val myRealm = if (testing) {
+        "test"
+    } else {
+        environment.config.property("jwt.realm").getString()
+    }
     install(Authentication) {
         jwt("auth-jwt") {
             realm = myRealm

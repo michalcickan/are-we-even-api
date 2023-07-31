@@ -3,15 +3,15 @@ package eu.services
 import LoginType
 import com.google.api.client.googleapis.auth.oauth2.GoogleIdToken
 import com.google.api.client.googleapis.auth.oauth2.GoogleIdTokenVerifier
+import eu.exceptions.APIException
 import eu.models.parameters.LoginParameters
 import eu.models.parameters.RefreshTokenParameters
 import eu.models.parameters.RegistrationParameters
 import eu.models.responses.AccessToken
-import eu.models.responses.User
+import eu.models.responses.users.User
 import eu.routes.env
 import eu.routes.jsonFactory
 import eu.routes.transport
-import eu.utils.APIException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.withContext
@@ -30,7 +30,6 @@ class AuthService(
     private val jwtService: IJWTService,
 ) : IAuthService {
     override suspend fun loginWith(parameters: LoginParameters, loginType: LoginType): AccessToken {
-        validateLoginParameters(parameters, loginType)
         val user = when (loginType) {
             LoginType.GOOGLE -> loginWithGoogle(parameters.idToken!!)
             LoginType.EMAIL -> loginWithEmail(parameters.email!!, parameters.password!!)
@@ -107,20 +106,4 @@ class AuthService(
                 null
             }
         }
-
-    private fun validateLoginParameters(params: LoginParameters, loginType: LoginType) {
-        when (loginType) {
-            LoginType.EMAIL -> {
-                if (params.email == null || params.password == null) {
-                    throw APIException.IncorrectLoginValues
-                }
-            }
-
-            LoginType.APPLE, LoginType.GOOGLE -> {
-                if (params.idToken == null) {
-                    throw APIException.IncorrectLoginValues
-                }
-            }
-        }
-    }
 }

@@ -1,5 +1,5 @@
 import eu.models.responses.GenericResponse
-import eu.models.responses.User
+import eu.models.responses.users.User
 import io.ktor.http.*
 import io.ktor.server.application.*
 import io.ktor.server.response.*

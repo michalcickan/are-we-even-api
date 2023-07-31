@@ -1,7 +1,7 @@
 package eu.plugins
 
 import LoginTypeDao
-import LoginTypeTable
+import LoginTypes
 import eu.modules.ITransactionHandler
 import eu.tables.*
 import io.ktor.server.application.*
@@ -14,13 +14,15 @@ fun Application.configureDatabases() {
         SchemaUtils.createMissingTablesAndColumns(
             Users,
             Addresses,
-            LoginTypeTable,
-            Owes,
+            LoginTypes,
+            Owees,
             Expenditures,
-            UserExpenditure,
+            UserExpenditures,
             AccessTokens,
             UserPasswords,
             RefreshTokens,
+            Groups,
+            UsersGroups,
         )
         LoginTypeDao.initializeTable()
     }

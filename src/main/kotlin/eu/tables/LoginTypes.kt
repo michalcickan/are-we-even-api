@@ -8,16 +8,16 @@ enum class LoginType {
     GOOGLE, APPLE, EMAIL
 }
 
-object LoginTypeTable : IntIdTable() {
+object LoginTypes : IntIdTable() {
     val loginType: Column<LoginType> = enumerationByName("login_type", 20, LoginType::class).uniqueIndex()
 }
 
 class LoginTypeDao(id: EntityID<Int>) : IntEntity(id) {
-    companion object : IntEntityClass<LoginTypeDao>(LoginTypeTable) {
+    companion object : IntEntityClass<LoginTypeDao>(LoginTypes) {
         @JvmStatic
         fun initializeTable() {
             for (type in LoginType.values()) {
-                if (find { LoginTypeTable.loginType eq type }.empty()) {
+                if (find { LoginTypes.loginType eq type }.empty()) {
                     new {
                         loginType = type
                     }
@@ -26,5 +26,5 @@ class LoginTypeDao(id: EntityID<Int>) : IntEntity(id) {
         }
     }
 
-    var loginType by LoginTypeTable.loginType
+    var loginType by LoginTypes.loginType
 }

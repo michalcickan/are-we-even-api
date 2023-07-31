@@ -1,14 +1,15 @@
 package eu.services
 
+import eu.exceptions.APIException
 import eu.models.parameters.CreateUserAddressParameters
 import eu.models.parameters.UpdateUserParameters
 import eu.models.responses.Address
-import eu.models.responses.User
 import eu.models.responses.toAddress
-import eu.models.responses.toUser
+import eu.models.responses.users.User
+import eu.models.responses.users.toUser
 import eu.modules.ITransactionHandler
 import eu.tables.*
-import eu.utils.APIException
+import eu.validation.IAuthRequestValidation
 
 interface IUserService {
     suspend fun getUsers(): List<User>
@@ -38,7 +39,7 @@ interface IUserService {
 
 class UserService(
     private val transactionHandler: ITransactionHandler,
-    private val validationService: IValidationService,
+    private val validationService: IAuthRequestValidation,
 ) :
     IUserService {
     override suspend fun getUsers(): List<User> {
@@ -54,10 +55,10 @@ class UserService(
         middleName: String?,
         surname: String?,
     ): User {
-        if (!validationService.validateEmail(email)) {
-            throw APIException.InvalidEmailFormat
-        }
         return transactionHandler.perform {
+            if (!UserDAO.find { Users.email eq email }.empty()) {
+                throw APIException.UserAlreadyExists
+            }
             UserDAO.new {
                 this.email = email
                 this.name = name

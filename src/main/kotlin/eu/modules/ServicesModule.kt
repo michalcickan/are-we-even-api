@@ -16,7 +16,6 @@ val servicesModule = module {
         JWTService(get(), env["SECRET"] ?: "", audience, audience)
     }
     factory<PasswordEncoder> { BCryptPasswordEncoder() }
-    factory<IValidationService> { ValidationService() }
     factory<IUserService> { UserService(get(), get()) }
     factory<IAuthService> { AuthService(get(), get(), get()) }
 }

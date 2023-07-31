@@ -2,12 +2,13 @@ package eu.services
 
 import LoginType
 import LoginTypeDao
-import LoginTypeTable
+import LoginTypes
 import RefreshToken
 import com.auth0.jwt.JWT
 import com.auth0.jwt.JWTVerifier
 import com.auth0.jwt.algorithms.Algorithm
 import com.auth0.jwt.interfaces.Payload
+import eu.exceptions.APIException
 import eu.models.responses.AccessToken
 import eu.models.responses.toAccessToken
 import eu.modules.ITransactionHandler
@@ -15,12 +16,12 @@ import eu.tables.AccessTokenDAO
 import eu.tables.RefreshTokenDAO
 import eu.tables.RefreshTokens
 import eu.tables.UserDAO
-import eu.utils.APIException
 import eu.utils.accessTokenExpiry
 import eu.utils.refreshTokenExpiry
 import eu.utils.toLocalDateTime
 import io.ktor.server.auth.jwt.*
 import toRefreshToken
+import java.time.LocalDateTime
 
 interface IJWTService {
     suspend fun createAccessToken(
@@ -79,7 +80,7 @@ class JWTService(
             AccessTokenDAO.new {
                 this.platformAgnosticToken = platformSpecificToken
                 this.accessToken = generateToken(userId, false)
-                this.loginType = LoginTypeDao.find { LoginTypeTable.loginType eq loginType }.first()
+                this.loginType = LoginTypeDao.find { LoginTypes.loginType eq loginType }.first()
                 this.user = UserDAO[userId]
                 this.expiryDate = accessTokenExpiry().toLocalDateTime()
             }.toAccessToken(refreshToken.refreshToken)
@@ -88,10 +89,15 @@ class JWTService(
 
     override suspend fun getRefreshToken(refreshToken: String): RefreshToken? {
         return transactionHandler.perform {
-            RefreshTokenDAO
-                .find { RefreshTokens.refreshToken eq refreshToken }
-                .first()
-                .toRefreshToken()
+            try {
+                RefreshTokenDAO
+                    .find { RefreshTokens.refreshToken eq refreshToken }
+                    .first { it.expiryDate.isAfter(LocalDateTime.now()) || it.expiryDate.isEqual(LocalDateTime.now()) }
+                    .toRefreshToken()
+            } catch (e: Exception) {
+                print(e.toString())
+                null
+            }
         }
     }
 

@@ -1,18 +1,19 @@
+import eu.exceptions.APIException
 import eu.models.parameters.LoginParameters
 import eu.models.parameters.RefreshTokenParameters
 import eu.models.parameters.RegistrationParameters
 import eu.models.responses.AccessToken
-import eu.models.responses.User
+import eu.models.responses.users.User
 import eu.services.AuthService
 import eu.services.IJWTService
 import eu.services.IUserService
-import eu.utils.APIException
 import eu.utils.toDate
 import io.mockk.clearAllMocks
 import io.mockk.coEvery
 import io.mockk.every
 import io.mockk.mockk
-import junit.framework.TestCase.*
+import junit.framework.TestCase.assertEquals
+import junit.framework.TestCase.assertNotNull
 import kotlinx.coroutines.runBlocking
 import org.junit.After
 import org.junit.Before
@@ -42,29 +43,6 @@ class AuthServiceTest {
     }
 
     @Test
-    fun `withLogin should throw the IncorrectLoginValues exception if password or email are null`() = runBlocking {
-        val loginType = LoginType.EMAIL
-
-        try {
-            val parameters = LoginParameters(email = null, password = "password", idToken = null)
-            val result = authService.loginWith(parameters, loginType)
-        } catch (e: APIException.IncorrectLoginValues) {
-            //
-        } catch (e: Exception) {
-            fail("not a good exception $e")
-        }
-
-        try {
-            val parameters = LoginParameters(email = "mic@test.eu", password = null, idToken = null)
-            val result = authService.loginWith(parameters, loginType)
-        } catch (e: APIException.IncorrectLoginValues) {
-            //
-        } catch (e: Exception) {
-            fail("not a good exception $e")
-        }
-    }
-
-    @Test
     fun `loginWith should throw UserDoesNotExist exception for non-existent user`() = runBlocking {
         // Arrange
         val parameters = LoginParameters(email = "nonexistent@test.eu", password = "password", idToken = null)
@@ -73,14 +51,12 @@ class AuthServiceTest {
         coEvery { userService.getPassword(any()) } returns "something-encoded"
         every { passwordEncoder.matches(parameters.password, "something-encoded") } returns false
         // Act & Assert
-
-        try {
-            val result = authService.loginWith(parameters, loginType)
-        } catch (e: APIException.UserDoesNotExist) {
-            //
-        } catch (e: Exception) {
-            fail("not a good exception $e")
+        val result = runCatching {
+            authService.loginWith(parameters, loginType)
         }
+            .onFailure { e -> e }
+            .exceptionOrNull()
+        assertEquals(result, APIException.UserDoesNotExist)
     }
 
     @Test
@@ -91,13 +67,14 @@ class AuthServiceTest {
         coEvery { userService.getUser(email = any()) } returns makeUser()
         coEvery { userService.getPassword(any()) } returns "something-encoded"
         every { passwordEncoder.matches(parameters.password, "something-encoded") } returns false
-        try {
-            val result = authService.loginWith(parameters, loginType)
-        } catch (e: APIException.LoginNotMatch) {
-            //
-        } catch (e: Exception) {
-            fail("not a good exception $e")
+
+        // Act
+        val result = runCatching {
+            authService.loginWith(parameters, loginType)
         }
+            .onFailure { e -> e }
+            .exceptionOrNull()
+        assertEquals(result, APIException.LoginNotMatch)
     }
 
     @Test
@@ -173,15 +150,12 @@ class AuthServiceTest {
             }.time,
             userId = 2,
         )
-
-        try {
-            val token = authService.recreateAccessToken(parameters)
-            fail("should throw exception")
-        } catch (e: APIException.TokenExpired) {
-            //
-        } catch (e: Exception) {
-            fail("not good exception $e")
+        val result = runCatching {
+            authService.recreateAccessToken(parameters)
         }
+            .onFailure { e -> e }
+            .exceptionOrNull()
+        assertEquals(result, APIException.TokenExpired)
     }
 }
 

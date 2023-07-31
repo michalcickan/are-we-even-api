@@ -6,7 +6,12 @@ import org.koin.ktor.plugin.Koin
 
 fun Application.configureDependencyInjection() {
     install(Koin) {
-        // TODO: environment should be also injectable
-        modules(environmentModule(environment), redisModule, transactionHandlerModule, servicesModule)
+        modules(
+            environmentModule(environment),
+            redisModule,
+            transactionHandlerModule,
+            servicesModule,
+            validationModule,
+        )
     }
 }

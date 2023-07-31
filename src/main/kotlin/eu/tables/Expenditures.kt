@@ -8,11 +8,13 @@ import org.jetbrains.exposed.dao.id.IntIdTable
 object Expenditures : IntIdTable() {
     val description = varchar("description", 1000)
     val totalAmount = float("totalAmount")
+    val groupId = reference("groupId", Groups)
 }
 
 class ExpenditureDAO(id: EntityID<Int>) : IntEntity(id) {
     companion object : IntEntityClass<ExpenditureDAO>(Expenditures)
 
-    val description by Expenditures.description
-    val totalAmount by Expenditures.totalAmount
+    var description by Expenditures.description
+    var totalAmount by Expenditures.totalAmount
+    var groupId by GroupDAO referencedOn Expenditures.groupId
 }
