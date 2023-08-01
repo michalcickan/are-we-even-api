@@ -1,11 +1,14 @@
 package eu.models.responses
 
 import eu.tables.GroupDAO
+import kotlinx.serialization.Serializable
 
-class Group(
+@Serializable
+data class Group(
     val name: String,
+    val id: Int,
 )
 
 fun GroupDAO.toGroup(): Group {
-    return Group(this.name)
+    return Group(name, id.value)
 }

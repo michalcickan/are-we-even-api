@@ -2,7 +2,6 @@ package eu.services
 
 import eu.models.parameters.AddExpenditureParameters
 import eu.models.parameters.AddExpenditureParametersPayer
-import eu.models.parameters.CreateGroupParameters
 import eu.models.parameters.UpdateExpenditureParameters
 import eu.models.responses.Expenditure
 import eu.models.responses.toExpenditure
@@ -16,24 +15,33 @@ interface IExpenditureService {
     suspend fun getExpenditure(id: Int): Expenditure
     suspend fun getAllExpenditures(groupId: Int): List<Expenditure>
     suspend fun addExpenditure(params: AddExpenditureParameters, groupId: Int): Expenditure
-    suspend fun updateExpenditure(params: UpdateExpenditureParameters, groupId: Int): Expenditure
-
-    suspend fun createGroup(params: CreateGroupParameters, creatorUserId: Long)
+    suspend fun updateExpenditure(
+        params: UpdateExpenditureParameters,
+        groupId: Int,
+        expenditureId: Int,
+    ): Expenditure
 }
 
 class ExpenditureService(
-    val transactionManager: ITransactionHandler,
+    private val transactionHandler: ITransactionHandler,
 ) : IExpenditureService {
     override suspend fun getExpenditure(id: Int): Expenditure {
-        TODO("Not yet implemented")
+        return transactionHandler.perform {
+            ExpenditureDAO[id].getUsersAndMakeExpenditure()
+//            val usersInGroup = UserGroupDAO.find { UsersGroups.groupId eq expenditure.id }
+        }
     }
 
     override suspend fun getAllExpenditures(groupId: Int): List<Expenditure> {
-        TODO("Not yet implemented")
+        return transactionHandler
+            .perform {
+                ExpenditureDAO.find { Expenditures.groupId eq groupId }
+                    .map { it.toExpenditure(null) }
+            }
     }
 
     override suspend fun addExpenditure(params: AddExpenditureParameters, groupId: Int): Expenditure {
-        return transactionManager.perform {
+        return transactionHandler.perform {
             val expenditure = ExpenditureDAO.new {
                 this.description = params.description
                 this.totalAmount = ExpenditureUtils.getTotalPaidAmount(params.users).toFloat()
@@ -48,13 +56,17 @@ class ExpenditureService(
              */
             fillOrUpdateOweeTable(params.users, groupId)
             fillUserExpenditureTable(params.users, expenditure)
-            expenditure.toExpenditure()
+            expenditure.getUsersAndMakeExpenditure()
         }
     }
 
-    override suspend fun updateExpenditure(params: UpdateExpenditureParameters, groupId: Int): Expenditure {
-        return transactionManager.perform {
-            val expenditure = ExpenditureDAO[params.id]
+    override suspend fun updateExpenditure(
+        params: UpdateExpenditureParameters,
+        groupId: Int,
+        expenditureId: Int,
+    ): Expenditure {
+        return transactionHandler.perform {
+            val expenditure = ExpenditureDAO[expenditureId]
             if (params.description != null) {
                 expenditure.description = params.description
             }
@@ -62,16 +74,7 @@ class ExpenditureService(
                 expenditure.totalAmount = ExpenditureUtils.getTotalPaidAmount(params.users).toFloat()
                 updateUserExpenditureTable(params.users, expenditure)
             }
-            expenditure.toExpenditure()
-        }
-    }
-
-    override suspend fun createGroup(params: CreateGroupParameters, creatorUserId: Long) {
-        transactionManager.perform {
-            GroupDAO.new {
-                this.name = params.name
-                this.createdBy = UserDAO[creatorUserId]
-            }
+            expenditure.getUsersAndMakeExpenditure()
         }
     }
 
@@ -171,3 +174,10 @@ private data class _UserExpenditure(
     val paidAmount: Float,
     val dueAmount: Float,
 )
+
+private fun ExpenditureDAO.getUsersAndMakeExpenditure(): Expenditure {
+    val users = UserExpenditureDAO
+        .find { UserExpenditures.expenditureId eq id }
+        .toList()
+    return toExpenditure(users)
+}

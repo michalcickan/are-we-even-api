@@ -1,8 +1,8 @@
 package eu.routes
 
 import eu.models.parameters.AddExpenditureParameters
-import eu.models.parameters.UpdateExpenditureParameters
 import eu.services.IExpenditureService
+import eu.services.IGroupService
 import eu.services.IJWTService
 import handleRequestWithExceptions
 import io.ktor.server.application.*
@@ -14,6 +14,7 @@ import org.koin.ktor.ext.inject
 fun Route.groupRoutes() {
     val expenditureService by inject<IExpenditureService>()
     val jwtService by inject<IJWTService>()
+    val groupService by inject<IGroupService>()
 
     authenticate("auth-jwt") {
         post("groups/{groupId}/expenditure") {
@@ -24,11 +25,13 @@ fun Route.groupRoutes() {
             }
         }
 
-        put("groups/{groupId}/expenditure") {
+        put("groups/{groupId}/expenditures/{expenditureId}") {
             handleRequestWithExceptions(call) {
-                val groupId = call.parameters["groupId"]!!.toInt()
-                val params = call.receive<UpdateExpenditureParameters>()
-                expenditureService.updateExpenditure(params, groupId)
+                expenditureService.updateExpenditure(
+                    call.receive(),
+                    call.parameters["groupId"]!!.toInt(),
+                    call.parameters["expenditureId"]!!.toInt(),
+                )
             }
         }
 
@@ -41,9 +44,26 @@ fun Route.groupRoutes() {
 
         post("group") {
             handleRequestWithExceptions(call) {
-                expenditureService.createGroup(
+                groupService.createGroup(
                     call.receive(),
                     jwtService.getUserIdFromPrincipalPayload(call.principal()),
+                )
+            }
+        }
+
+        get("groups") {
+            handleRequestWithExceptions(call) {
+                groupService.getGroupsForUser(
+                    jwtService.getUserIdFromPrincipalPayload(call.principal()),
+                )
+            }
+        }
+
+        post("groups/{groupId}/users/{userId}") {
+            handleRequestWithExceptions(call) {
+                groupService.addUserToGroup(
+                    call.parameters["groupId"]!!.toInt(),
+                    call.parameters["userId"]!!.toLong(),
                 )
             }
         }

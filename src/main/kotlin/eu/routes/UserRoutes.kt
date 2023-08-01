@@ -1,5 +1,7 @@
 package eu.routes
 
+import eu.exceptions.ValidationException
+import eu.models.parameters.UserFilterColumn
 import eu.services.IJWTService
 import eu.services.IUserService
 import handleRequestWithExceptions
@@ -35,6 +37,17 @@ fun Route.userRoutes() {
                     call.userId(jwtService),
                     call.receive(),
                 )
+            }
+        }
+
+        get("/users/search") {
+            handleRequestWithExceptions(call) {
+                val queryParameters = call.request.queryParameters
+                val name = queryParameters["filter_col"]
+                var query: String = queryParameters["query"] ?: throw ValidationException.QueryIsMissing
+                val column = name?.let { it1 -> enumValueOf<UserFilterColumn>(it1) }
+
+                userService.searchUsers(query, column)
             }
         }
     }

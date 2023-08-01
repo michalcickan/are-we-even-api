@@ -68,7 +68,6 @@ class ExpenditureRequestValidationTest {
     fun `validate UpdateExpenditure should throw an error when there is no change to perform`() {
         val result = expenditureRequestValidation.updateExpenditure(
             UpdateExpenditureParameters(
-                2,
                 null,
                 null,
             ),
@@ -83,7 +82,6 @@ class ExpenditureRequestValidationTest {
     fun `validate UpdateExpenditure should be ok, when at least one change is provided`() {
         val result = expenditureRequestValidation.updateExpenditure(
             UpdateExpenditureParameters(
-                2,
                 null,
                 "new desc",
             ),
@@ -101,7 +99,6 @@ class ExpenditureRequestValidationTest {
 
         val result = expenditureRequestValidation.updateExpenditure(
             UpdateExpenditureParameters(
-                2,
                 paidAmounts.mapIndexed() { index, paidAmount ->
                     AddExpenditureParametersPayer(
                         2,
@@ -125,7 +122,6 @@ class ExpenditureRequestValidationTest {
 
         val result = expenditureRequestValidation.updateExpenditure(
             UpdateExpenditureParameters(
-                2,
                 paidAmounts.mapIndexed() { index, paidAmount ->
                     AddExpenditureParametersPayer(
                         2,

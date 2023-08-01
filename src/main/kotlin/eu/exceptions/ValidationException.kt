@@ -14,6 +14,11 @@ sealed class ValidationException(val statusCode: HttpStatusCode, override val me
         "The total paid amount and total due amount do not match",
     )
 
+    object QueryIsMissing : APIException(
+        HttpStatusCode.UnprocessableEntity,
+        "If you search for a user, `query` parameter is needed",
+    )
+
     object PaidOrDueAmountCannotBeNegative : APIException(
         HttpStatusCode.UnprocessableEntity,
         "Paid or due amount cannot be negative.",

@@ -17,3 +17,11 @@ data class CreateUserAddressParameters(
     val street: String,
     val country: String,
 )
+
+@Serializable
+enum class UserFilterColumn(val message: String) {
+    NAME("name"),
+    MIDDLE_NAME("middleName"),
+    SURNAME("surname"),
+    EMAIL("email"),
+}

@@ -14,6 +14,7 @@ import kotlinx.coroutines.runBlocking
 import org.junit.After
 import org.junit.Before
 import org.junit.Test
+import kotlin.test.assertContentEquals
 import kotlin.test.assertNull
 
 class UserSeviceTest {
@@ -103,4 +104,143 @@ class UserSeviceTest {
         assertEquals(updatedUser.name, updatedUserParams.name)
         assertNull(updatedUser.middleName)
     }
+
+    @Test
+    fun `should return users when searching through users with fulltext query with match email`() = runBlocking {
+        val emails = arrayOf("some@email.com", "some@email2.com", "different@email.com")
+        val names = arrayOf("michal", "peter", "jozef")
+        transactionHandler.perform {
+            emails.forEachIndexed { index, email ->
+                UserDAO.new {
+                    this.email = email
+                    this.name = names[index]
+                }
+            }
+        }
+        val result = userService.searchUsers("some@email", null)
+            .map { it.email }
+            .toSet()
+        val expected = setOf("some@email.com", "some@email2.com")
+        assertEquals(expected, result)
+    }
+
+    @Test
+    fun `should return users when searching through users with fulltext query different letter sizes`() = runBlocking {
+        val emails = arrayOf("some@email.com", "some@email2.com", "different@email.com")
+        val names = arrayOf("michal", "peter", "jozef")
+        transactionHandler.perform {
+            emails.forEachIndexed { index, email ->
+                UserDAO.new {
+                    this.email = email
+                    this.name = names[index]
+                }
+            }
+        }
+        val result = userService.searchUsers("Some@email", null)
+            .map { it.email }
+            .toSet()
+        val expected = setOf("some@email.com", "some@email2.com")
+        assertEquals(expected, result)
+    }
+
+    @Test
+    fun `should return users when searching through users with fulltext query when email has different letter size`() =
+        runBlocking {
+            val emails = arrayOf("some@email.com", "Some@email2.com", "different@email.com")
+            val names = arrayOf("michal", "peter", "jozef")
+            transactionHandler.perform {
+                emails.forEachIndexed { index, email ->
+                    UserDAO.new {
+                        this.email = email
+                        this.name = names[index]
+                    }
+                }
+            }
+            val result = userService.searchUsers("some@email", null)
+                .map { it.email }
+                .toSet()
+            val expected = setOf("some@email.com", "Some@email2.com")
+            assertEquals(expected, result)
+        }
+
+    @Test
+    fun `should return users when searching through users with fulltext query when query match only names`() =
+        runBlocking {
+            val emails = arrayOf("some@email.com", "Some@email2.com", "different@email.com")
+            val names = arrayOf("michal", "peter", "jozef")
+            transactionHandler.perform {
+                emails.forEachIndexed { index, email ->
+                    UserDAO.new {
+                        this.email = email
+                        this.name = names[index]
+                    }
+                }
+            }
+            val result = userService.searchUsers("michal", null)
+                .map { it.email }
+                .toSet()
+            val expected = setOf("some@email.com")
+            assertEquals(expected, result)
+        }
+
+    @Test
+    fun `should return users when searching through users with fulltext query when query match only surnames`() =
+        runBlocking {
+            val emails = arrayOf("some@email.com", "Some@email2.com", "different@email.com")
+            val surnames = arrayOf("michal", "peter", "jozef")
+            transactionHandler.perform {
+                emails.forEachIndexed { index, email ->
+                    UserDAO.new {
+                        this.email = email
+                        this.surname = surnames[index]
+                    }
+                }
+            }
+            val result = userService.searchUsers("michal", null)
+                .map { it.email }
+                .toSet()
+            val expected = setOf("some@email.com")
+            assertEquals(expected, result)
+        }
+
+    @Test
+    fun `should not return doubled users when searching through users with fulltext query when query match record where surname and name are same`() =
+        runBlocking {
+            val emails = arrayOf("some@email.com", "Some@email2.com", "different@email.com")
+            val names = arrayOf("michal", "anton", "benjamin")
+            val surnames = arrayOf("michal", "peter", "jozef")
+            transactionHandler.perform {
+                emails.forEachIndexed { index, email ->
+                    UserDAO.new {
+                        this.email = email
+                        this.name = names[index]
+                        this.surname = surnames[index]
+                    }
+                }
+            }
+            val result = userService.searchUsers("michal", null)
+                .map { it.email }
+            val expected = listOf("some@email.com")
+            assertContentEquals(expected, result)
+        }
+
+    @Test
+    fun `should return nothing when searching through users with fulltext query and there are no results`() =
+        runBlocking {
+            val emails = arrayOf("some@email.com", "Some@email2.com", "different@email.com")
+            val names = arrayOf("michal", "anton", "benjamin")
+            val surnames = arrayOf("michal", "peter", "jozef")
+            transactionHandler.perform {
+                emails.forEachIndexed { index, email ->
+                    UserDAO.new {
+                        this.email = email
+                        this.name = names[index]
+                        this.surname = surnames[index]
+                    }
+                }
+            }
+            val result = userService.searchUsers("antonin", null)
+                .map { it.email }
+            assertContentEquals(emptyList(), result)
+        }
 }

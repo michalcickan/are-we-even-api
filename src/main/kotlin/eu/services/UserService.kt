@@ -3,6 +3,7 @@ package eu.services
 import eu.exceptions.APIException
 import eu.models.parameters.CreateUserAddressParameters
 import eu.models.parameters.UpdateUserParameters
+import eu.models.parameters.UserFilterColumn
 import eu.models.responses.Address
 import eu.models.responses.toAddress
 import eu.models.responses.users.User
@@ -10,6 +11,9 @@ import eu.models.responses.users.toUser
 import eu.modules.ITransactionHandler
 import eu.tables.*
 import eu.validation.IAuthRequestValidation
+import org.jetbrains.exposed.sql.SizedIterable
+import org.jetbrains.exposed.sql.or
+import java.util.*
 
 interface IUserService {
     suspend fun getUsers(): List<User>
@@ -35,6 +39,8 @@ interface IUserService {
     suspend fun getPassword(userId: Long): String?
 
     suspend fun addAddress(userId: Long, parameters: CreateUserAddressParameters): Address
+
+    suspend fun searchUsers(query: String, filterCol: UserFilterColumn?): List<User>
 }
 
 class UserService(
@@ -121,6 +127,48 @@ class UserService(
                 this.street = params.street
                 this.country = params.country
             }.toAddress()
+        }
+    }
+
+    override suspend fun searchUsers(query: String, filterCol: UserFilterColumn?): List<User> {
+        val lowerQuery = "%${query.lowercase(Locale.getDefault())}%"
+        return transactionHandler.perform {
+            if (filterCol != null) {
+                searchForUsersWithFilterColumn(lowerQuery, filterCol!!)
+            } else {
+                searchFulltextForUsersWithQuery(lowerQuery)
+            }.map { it.toUser() }
+        }
+    }
+
+    private fun searchFulltextForUsersWithQuery(query: String): SizedIterable<UserDAO> {
+        return UserDAO.find {
+            (Users.name like query) or
+                (Users.email like query) or
+                (Users.surname like query) or
+                (Users.middleName like query)
+        }
+    }
+
+    private fun searchForUsersWithFilterColumn(query: String, filterCol: UserFilterColumn): SizedIterable<UserDAO> {
+        return UserDAO.find {
+            when (filterCol) {
+                UserFilterColumn.EMAIL -> {
+                    Users.email like query
+                }
+
+                UserFilterColumn.MIDDLE_NAME -> {
+                    Users.middleName like query
+                }
+
+                UserFilterColumn.SURNAME -> {
+                    Users.surname like query
+                }
+
+                else -> {
+                    Users.name like query
+                }
+            }
         }
     }
 }

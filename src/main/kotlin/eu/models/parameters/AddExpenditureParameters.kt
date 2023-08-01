@@ -10,7 +10,6 @@ data class AddExpenditureParameters(
 
 @Serializable
 data class UpdateExpenditureParameters(
-    val id: Int,
     val users: List<AddExpenditureParametersPayer>?,
     val description: String?,
 )
