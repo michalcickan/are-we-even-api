@@ -1,7 +1,7 @@
-package eu.services.expenditure
+package eu.services.expense
 
 import eu.helpers.*
-import eu.services.ExpenditureService
+import eu.services.ExpenseService
 import eu.tables.*
 import io.mockk.clearAllMocks
 import kotlinx.coroutines.runBlocking
@@ -10,14 +10,14 @@ import org.junit.Before
 import org.junit.Test
 import kotlin.test.assertContentEquals
 
-class ExpenditureServiceForDebtComputationTest {
+class ExpenseServiceForDebtComputationTest {
     private val transactionHandler = MockTransactionHandler()
-    private lateinit var expenditureService: ExpenditureService
+    private lateinit var expenseService: ExpenseService
 
     @Before
     fun setup() {
-        transactionHandler.createTables(arrayOf(UserExpenditures, Users, Expenditures, Owees, Groups))
-        expenditureService = ExpenditureService(transactionHandler)
+        transactionHandler.createTables(arrayOf(UsersExpenses, Users, Expenses, Owees, Groups))
+        expenseService = ExpenseService(transactionHandler)
     }
 
     @After
@@ -33,7 +33,7 @@ class ExpenditureServiceForDebtComputationTest {
             val paidAmounts = listOf(20f, 30f, 40f)
             val dueAmounts = listOf(30f, 30f, 30f)
             var groupId = transactionHandler.makeGroupAndGetId(users[0].id)
-            expenditureService.addExpenditure(
+            expenseService.addExpense(
                 users.makeParams(paidAmounts, dueAmounts),
                 groupId,
             )
@@ -52,7 +52,7 @@ class ExpenditureServiceForDebtComputationTest {
             val paidAmounts = listOf(40f, 20f, 50f)
             val dueAmounts = listOf(20f, 30f, 60f)
             var groupId = transactionHandler.makeGroupAndGetId(users[0].id)
-            expenditureService.addExpenditure(
+            expenseService.addExpense(
                 users.makeParams(paidAmounts, dueAmounts),
                 groupId,
             )
@@ -65,20 +65,20 @@ class ExpenditureServiceForDebtComputationTest {
         }
 
     @Test
-    fun `uneven should update owing amount after adding other expenditure when one is in debt and others are not`() =
+    fun `uneven should update owing amount after adding other expense when one is in debt and others are not`() =
         runBlocking {
             // 1.
             val users = transactionHandler.fillUsers()
             val paidAmounts = listOf(40f, 20f, 50f)
             val dueAmounts = listOf(20f, 30f, 60f)
             var groupId = transactionHandler.makeGroupAndGetId(users[0].id)
-            expenditureService.addExpenditure(
+            expenseService.addExpense(
                 users.makeParams(paidAmounts, dueAmounts),
                 groupId,
             )
             val nextPaidAmounts = listOf(30f, 20f, 30f)
             val nextDueAmounts = listOf(20f, 30f, 30f)
-            expenditureService.addExpenditure(
+            expenseService.addExpense(
                 users.makeParams(nextPaidAmounts, nextDueAmounts),
                 groupId,
             )
@@ -92,20 +92,20 @@ class ExpenditureServiceForDebtComputationTest {
         }
 
     @Test
-    fun `uneven should update owing amount after adding other expenditure when two are not in debt and one owes only to one`() =
+    fun `uneven should update owing amount after adding other expense when two are not in debt and one owes only to one`() =
         runBlocking {
             // 2.
             val users = transactionHandler.fillUsers()
             val paidAmounts = listOf(40f, 20f, 50f)
             val dueAmounts = listOf(20f, 30f, 60f)
             var groupId = transactionHandler.makeGroupAndGetId(users[0].id)
-            expenditureService.addExpenditure(
+            expenseService.addExpense(
                 users.makeParams(paidAmounts, dueAmounts),
                 groupId,
             )
             val nextPaidAmounts = listOf(50f, 20f, 30f)
             val nextDueAmounts = listOf(60f, 10f, 30f)
-            expenditureService.addExpenditure(
+            expenseService.addExpense(
                 users.makeParams(nextPaidAmounts, nextDueAmounts),
                 groupId,
             )
@@ -119,20 +119,20 @@ class ExpenditureServiceForDebtComputationTest {
         }
 
     @Test
-    fun `uneven should update owing amount after adding other expenditure when one is in debt to both`() =
+    fun `uneven should update owing amount after adding other expense when one is in debt to both`() =
         runBlocking {
             // 3.
             val users = transactionHandler.fillUsers()
             val paidAmounts = listOf(40f, 20f, 50f)
             val dueAmounts = listOf(40f, 10f, 60f)
             var groupId = transactionHandler.makeGroupAndGetId(users[0].id)
-            expenditureService.addExpenditure(
+            expenseService.addExpense(
                 users.makeParams(paidAmounts, dueAmounts),
                 groupId,
             )
             val nextPaidAmounts = listOf(40f, 20f, 50f)
             val nextDueAmounts = listOf(30f, 20f, 60f)
-            expenditureService.addExpenditure(
+            expenseService.addExpense(
                 users.makeParams(nextPaidAmounts, nextDueAmounts),
                 groupId,
             )
@@ -145,20 +145,20 @@ class ExpenditureServiceForDebtComputationTest {
         }
 
     @Test
-    fun `even should update owing amount after adding other expenditure when two are not in debt and one owes only to one`() =
+    fun `even should update owing amount after adding other expense when two are not in debt and one owes only to one`() =
         runBlocking {
             // 2.
             val users = transactionHandler.fillUsers(4)
             val paidAmounts = listOf(40f, 20f, 50f, 40f)
             val dueAmounts = listOf(20f, 30f, 80f, 20f)
             var groupId = transactionHandler.makeGroupAndGetId(users[0].id)
-            expenditureService.addExpenditure(
+            expenseService.addExpense(
                 users.makeParams(paidAmounts, dueAmounts),
                 groupId,
             )
             val nextPaidAmounts = listOf(50f, 20f, 30f, 50f)
             val nextDueAmounts = listOf(80f, 10f, 30f, 30f)
-            expenditureService.addExpenditure(
+            expenseService.addExpense(
                 users.makeParams(nextPaidAmounts, nextDueAmounts),
                 groupId,
             )
@@ -171,20 +171,20 @@ class ExpenditureServiceForDebtComputationTest {
         }
 
     @Test
-    fun `even should update owing amount after adding other expenditure when one is in debt to both`() =
+    fun `even should update owing amount after adding other expense when one is in debt to both`() =
         runBlocking {
             // 3.
             val users = transactionHandler.fillUsers(4)
             val paidAmounts = listOf(40f, 20f, 50f, 40f)
             val dueAmounts = listOf(40f, 10f, 80f, 20f)
             var groupId = transactionHandler.makeGroupAndGetId(users[0].id)
-            expenditureService.addExpenditure(
+            expenseService.addExpense(
                 users.makeParams(paidAmounts, dueAmounts),
                 groupId,
             )
             val nextPaidAmounts = listOf(40f, 30f, 50f, 20f)
             val nextDueAmounts = listOf(30f, 20f, 60f, 30f)
-            expenditureService.addExpenditure(
+            expenseService.addExpense(
                 users.makeParams(nextPaidAmounts, nextDueAmounts),
                 groupId,
             )

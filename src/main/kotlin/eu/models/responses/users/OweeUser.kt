@@ -6,5 +6,5 @@ import kotlinx.serialization.Serializable
 data class OweeUser(
     val id: Long,
     val name: String,
-    val usersTo: List<ExpenditureUser>,
+    val usersTo: List<ExpenseUser>,
 )

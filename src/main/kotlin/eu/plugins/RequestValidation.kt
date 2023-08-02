@@ -2,7 +2,7 @@ package eu.plugins
 
 import eu.models.responses.GenericResponse
 import eu.validation.IAuthRequestValidation
-import eu.validation.IExpenditureRequestValidation
+import eu.validation.IExpenseRequestValidation
 import io.ktor.http.*
 import io.ktor.server.application.*
 import io.ktor.server.plugins.requestvalidation.*
@@ -12,15 +12,15 @@ import org.koin.ktor.ext.inject
 
 fun Application.configureRequestValidation() {
     val authValidation by inject<IAuthRequestValidation>()
-    val expenditureValidationService by inject<IExpenditureRequestValidation>()
+    val expenseValidationService by inject<IExpenseRequestValidation>()
 
     install(RequestValidation) {
         validate(authValidation::loginParameters)
 
         validate(authValidation::registrationParameters)
 
-        validate(expenditureValidationService::addExpenditure)
-        validate(expenditureValidationService::updateExpenditure)
+        validate(expenseValidationService::addExpense)
+        validate(expenseValidationService::updateExpense)
     }
 
     install(StatusPages) {

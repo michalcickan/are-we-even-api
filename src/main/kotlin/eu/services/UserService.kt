@@ -114,7 +114,7 @@ class UserService(
 
     override suspend fun getPassword(userId: Long): String? {
         return transactionHandler.perform {
-            UserPasswordDAO.find { UserPasswords.userId eq userId }.singleOrNull()?.password
+            UserPasswordDAO.find { UsersPasswords.userId eq userId }.singleOrNull()?.password
         }
     }
 

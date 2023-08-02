@@ -1,16 +1,16 @@
 package eu.utils
 
-import eu.models.parameters.AddExpenditureParametersPayer
+import eu.models.parameters.expense.ExpensePayerParameters
 
-class ExpenditureUtils {
+class ExpenseUtils {
     companion object {
-        fun getTotalPaidAmount(users: List<AddExpenditureParametersPayer>): Double {
+        fun getTotalPaidAmount(users: List<ExpensePayerParameters>): Double {
             return users.fold(0.0) { acc, payer ->
                 acc + payer.paidAmount
             }
         }
 
-        fun getTotalDueAmount(users: List<AddExpenditureParametersPayer>): Double {
+        fun getTotalDueAmount(users: List<ExpensePayerParameters>): Double {
             return users.fold(0.0) { acc, payer ->
                 acc + payer.dueAmount
             }

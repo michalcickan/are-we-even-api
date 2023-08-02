@@ -1,27 +1,33 @@
 package eu.services
 
+import eu.exceptions.APIException
 import eu.helpers.MockTransactionHandler
 import eu.helpers.fillUsers
 import eu.helpers.makeGroupAndGetId
 import eu.models.parameters.CreateGroupParameters
+import eu.models.responses.Group
+import eu.models.responses.Invitation
 import eu.tables.*
-import io.mockk.clearAllMocks
-import junit.framework.TestCase
+import io.mockk.*
+import junit.framework.TestCase.assertNotNull
 import kotlinx.coroutines.runBlocking
 import org.jetbrains.exposed.sql.and
 import org.junit.After
 import org.junit.Before
 import org.junit.Test
 import kotlin.test.assertContentEquals
+import kotlin.test.assertEquals
+import kotlin.test.assertNotEquals
 
 class GroupServiceTest {
     private val transactionHandler = MockTransactionHandler()
     private lateinit var groupService: GroupService
+    private val mockInvitationService: IInvitationService = mockk()
 
     @Before
     fun setup() {
-        transactionHandler.createTables(arrayOf(UsersGroups, Groups))
-        groupService = GroupService(transactionHandler)
+        transactionHandler.createTables(arrayOf(UsersGroups, Groups, Invitations))
+        groupService = GroupService(transactionHandler, mockInvitationService)
     }
 
     @After
@@ -40,14 +46,14 @@ class GroupServiceTest {
         transactionHandler.perform {
             listOf(firstGroupId, secondGroupId).forEachIndexed { index, groupId ->
                 UserGroupDAO.new {
-                    this.userId = UserDAO[firstUsers[0].id]
-                    this.groupId = GroupDAO[groupId]
+                    this.user = UserDAO[firstUsers[0].id]
+                    this.group = GroupDAO[groupId]
                 }
             }
             secondUsers.forEach { user ->
                 UserGroupDAO.new {
-                    this.userId = UserDAO[user.id]
-                    this.groupId = GroupDAO[thirdGroupId]
+                    this.user = UserDAO[user.id]
+                    this.group = GroupDAO[thirdGroupId]
                 }
             }
         }
@@ -58,7 +64,7 @@ class GroupServiceTest {
     }
 
     @Test
-    fun `getGroupsForUser should return empy list when user is not in any`() = runBlocking {
+    fun `getGroupsForUser should return empty list when user is not in any`() = runBlocking {
         val firstUsers = transactionHandler.fillUsers(2)
         val firstGroupId = transactionHandler.makeGroupAndGetId(firstUsers[0].id)
         val secondUsers = transactionHandler.fillUsers(3, 2)
@@ -67,14 +73,14 @@ class GroupServiceTest {
         transactionHandler.perform {
             listOf(firstGroupId, secondGroupId).forEachIndexed { index, groupId ->
                 UserGroupDAO.new {
-                    this.userId = UserDAO[firstUsers[0].id]
-                    this.groupId = GroupDAO[groupId]
+                    this.user = UserDAO[firstUsers[0].id]
+                    this.group = GroupDAO[groupId]
                 }
             }
             secondUsers.forEach { user ->
                 UserGroupDAO.new {
-                    this.userId = UserDAO[user.id]
-                    this.groupId = GroupDAO[thirdGroupId]
+                    this.user = UserDAO[user.id]
+                    this.group = GroupDAO[thirdGroupId]
                 }
             }
         }
@@ -85,7 +91,6 @@ class GroupServiceTest {
 
     @Test
     fun `should add group to database`() = runBlocking {
-        // 3.
         val users = transactionHandler.fillUsers()
         val name = "testing"
         groupService.createGroup(
@@ -100,6 +105,141 @@ class GroupServiceTest {
             }
                 .first()
         }
-        TestCase.assertNotNull(databaseGroup)
+        assertNotNull(databaseGroup)
     }
+
+    @Test
+    fun `should insert a user in to a group when creates its`() =
+        runBlocking {
+            val users = transactionHandler.fillUsers()
+            val group = groupService.createGroup(
+                CreateGroupParameters(
+                    "test",
+                ),
+                users[0].id,
+            )
+
+            val databaseRecord = transactionHandler.perform {
+                UserGroupDAO
+                    .find {
+                        (UsersGroups.groupId eq group.id) and (UsersGroups.userId eq users[0].id)
+                    }
+                    .toList()
+            }
+            assertNotEquals(emptyList(), databaseRecord)
+        }
+
+    @Test
+    fun `should not insert a user in to a group and should call an adding invitation method`() =
+        runBlocking {
+            val users = transactionHandler.fillUsers(2)
+            val groupId = transactionHandler.makeGroupAndGetId(users[0].id)
+            val testingUser = users[1]
+            coEvery { mockInvitationService.makeUserInvitationForGroup(any(), any()) } returns Invitation(
+                1,
+                testingUser,
+                Group("test", groupId),
+            )
+            groupService.addUserToGroup(groupId, testingUser.id)
+
+            val databaseRecord = transactionHandler.perform {
+                UserGroupDAO
+                    .find {
+                        (UsersGroups.groupId eq groupId) and (UsersGroups.userId eq testingUser.id)
+                    }
+                    .toList()
+            }
+            assertEquals(emptyList(), databaseRecord)
+            coVerify { mockInvitationService.makeUserInvitationForGroup(groupId, testingUser.id) }
+        }
+
+    @Test
+    fun `handleInvitation should not add a user in to a group when user not accepted and called handleInvitation`() =
+        runBlocking {
+            val users = transactionHandler.fillUsers(2)
+            val groupId = transactionHandler.makeGroupAndGetId(users[0].id)
+            val testingUser = users[1].id
+            val accepted = false
+            val mockInvitationId = 2
+            coEvery { mockInvitationService.handleInvitation(any(), any()) } just Runs
+            groupService.handleInvitation(
+                groupId,
+                testingUser,
+                mockInvitationId,
+                accepted,
+            )
+
+            val databaseRecord = transactionHandler.perform {
+                UserGroupDAO
+                    .find {
+                        (UsersGroups.groupId eq groupId) and (UsersGroups.userId eq testingUser)
+                    }
+                    .toList()
+            }
+            assertEquals(emptyList(), databaseRecord)
+            coVerify { mockInvitationService.handleInvitation(mockInvitationId, accepted) }
+        }
+
+    @Test
+    fun `handleInvitation should call handleInvitation from invitationService`() =
+        runBlocking {
+            val users = transactionHandler.fillUsers(2)
+            val groupId = transactionHandler.makeGroupAndGetId(users[0].id)
+            val testingUser = users[1].id
+            val accepted = false
+            val mockInvitationId = 2
+            coEvery { mockInvitationService.handleInvitation(any(), any()) } just Runs
+            groupService.handleInvitation(
+                groupId,
+                testingUser,
+                mockInvitationId,
+                accepted,
+            )
+            coVerify { mockInvitationService.handleInvitation(mockInvitationId, accepted) }
+        }
+
+    @Test
+    fun `handleInvitation should add a user in to a group when user accepted`() =
+        runBlocking {
+            val users = transactionHandler.fillUsers(2)
+            val groupId = transactionHandler.makeGroupAndGetId(users[0].id)
+            val testingUser = users[1].id
+            val accepted = true
+            coEvery { mockInvitationService.handleInvitation(any(), any()) } just Runs
+            groupService.handleInvitation(
+                groupId,
+                testingUser,
+                2,
+                accepted,
+            )
+
+            val databaseRecord = transactionHandler.perform {
+                UserGroupDAO
+                    .find {
+                        (UsersGroups.groupId eq groupId) and (UsersGroups.userId eq testingUser)
+                    }
+                    .toList()
+            }
+            assertNotEquals(emptyList(), databaseRecord)
+        }
+
+    @Test
+    fun `should throw the UserAlreadyInGroup exception when adding user to a group where he is already in`() =
+        runBlocking {
+            val users = transactionHandler.fillUsers(1)
+            val testingUserId = users[0].id
+            val name = "testing"
+            val group = groupService.createGroup(
+                CreateGroupParameters(
+                    name,
+                ),
+                testingUserId,
+            )
+            val result = runCatching {
+                groupService.addUserToGroup(group.id, testingUserId)
+            }
+                .onFailure { e -> e }
+                .exceptionOrNull()
+            assertEquals(result, APIException.UserAlreadyInGroup)
+        }
 }

@@ -1,9 +1,7 @@
 package eu.routes
 
-import eu.models.parameters.AddExpenditureParameters
-import eu.services.IExpenditureService
-import eu.services.IGroupService
-import eu.services.IJWTService
+import eu.models.parameters.expense.AddExpenseParameters
+import eu.services.*
 import handleRequestWithExceptions
 import io.ktor.server.application.*
 import io.ktor.server.auth.*
@@ -12,39 +10,48 @@ import io.ktor.server.routing.*
 import org.koin.ktor.ext.inject
 
 fun Route.groupRoutes() {
-    val expenditureService by inject<IExpenditureService>()
     val jwtService by inject<IJWTService>()
-    val groupService by inject<IGroupService>()
+    val groupsRouteService by inject<IGroupService>()
+    val expenseService by inject<IExpenseService>()
+    val invitationService by inject<IInvitationService>()
 
     authenticate("auth-jwt") {
-        post("groups/{groupId}/expenditure") {
+        post("groups/{groupId}/expense") {
             handleRequestWithExceptions(call) {
                 val groupId = call.parameters["groupId"]!!.toInt()
-                val params = call.receive<AddExpenditureParameters>()
-                expenditureService.addExpenditure(params, groupId)
+                val params = call.receive<AddExpenseParameters>()
+                expenseService.addExpense(params, groupId)
             }
         }
 
-        put("groups/{groupId}/expenditures/{expenditureId}") {
+        post("groups/invitations") {
             handleRequestWithExceptions(call) {
-                expenditureService.updateExpenditure(
-                    call.receive(),
-                    call.parameters["groupId"]!!.toInt(),
-                    call.parameters["expenditureId"]!!.toInt(),
+                invitationService.getInvitations(
+                    jwtService.getUserIdFromPrincipalPayload(call.principal()),
                 )
             }
         }
 
-        get("groups/{groupId}/expenditures") {
+        put("groups/{groupId}/expenses/{expenseId}") {
+            handleRequestWithExceptions(call) {
+                expenseService.updateExpense(
+                    call.receive(),
+                    call.parameters["groupId"]!!.toInt(),
+                    call.parameters["expenseId"]!!.toInt(),
+                )
+            }
+        }
+
+        get("groups/{groupId}/expenses") {
             handleRequestWithExceptions(call) {
                 val groupId = call.parameters["groupId"]!!.toInt()
-                expenditureService.getAllExpenditures(groupId)
+                expenseService.getAllExpenses(groupId)
             }
         }
 
         post("group") {
             handleRequestWithExceptions(call) {
-                groupService.createGroup(
+                groupsRouteService.createGroup(
                     call.receive(),
                     jwtService.getUserIdFromPrincipalPayload(call.principal()),
                 )
@@ -53,7 +60,7 @@ fun Route.groupRoutes() {
 
         get("groups") {
             handleRequestWithExceptions(call) {
-                groupService.getGroupsForUser(
+                groupsRouteService.getGroupsForUser(
                     jwtService.getUserIdFromPrincipalPayload(call.principal()),
                 )
             }
@@ -61,7 +68,7 @@ fun Route.groupRoutes() {
 
         post("groups/{groupId}/users/{userId}") {
             handleRequestWithExceptions(call) {
-                groupService.addUserToGroup(
+                groupsRouteService.addUserToGroup(
                     call.parameters["groupId"]!!.toInt(),
                     call.parameters["userId"]!!.toLong(),
                 )

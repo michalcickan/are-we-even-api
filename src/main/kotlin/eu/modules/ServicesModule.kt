@@ -13,8 +13,10 @@ val servicesModule = module {
         val audience = environment.config.property("jwt.audience").getString()
         JWTService(get(), env["SECRET"] ?: "", audience, audience)
     }
+    factory<IInvitationService> { InvitationService(get()) }
     factory<PasswordEncoder> { BCryptPasswordEncoder() }
     factory<IUserService> { UserService(get(), get()) }
+    factory<IExpenseService> { ExpenseService(get()) }
     factory<IAuthService> { AuthService(get(), get(), get()) }
-    factory<IGroupService> { GroupService(get()) }
+    factory<IGroupService> { GroupService(get(), get()) }
 }

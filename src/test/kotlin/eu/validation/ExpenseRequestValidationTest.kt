@@ -2,31 +2,31 @@ package eu.validation
 
 import eu.exceptions.ValidationException
 import eu.helpers.getInvalidMessage
-import eu.models.parameters.AddExpenditureParameters
-import eu.models.parameters.AddExpenditureParametersPayer
-import eu.models.parameters.UpdateExpenditureParameters
+import eu.models.parameters.expense.AddExpenseParameters
+import eu.models.parameters.expense.ExpensePayerParameters
+import eu.models.parameters.expense.UpdateExpenseParameters
 import io.ktor.server.plugins.requestvalidation.*
 import org.junit.Before
 import org.junit.Test
 import kotlin.test.assertEquals
 
-class ExpenditureRequestValidationTest {
-    private lateinit var expenditureRequestValidation: ExpenditureRequestValidation
+class ExpenseRequestValidationTest {
+    private lateinit var expenseRequestValidation: ExpenseRequestValidation
 
     @Before
     fun setup() {
-        expenditureRequestValidation = ExpenditureRequestValidation()
+        expenseRequestValidation = ExpenseRequestValidation()
     }
 
     @Test
-    fun `validate AddExpenditure should throw an error when sum of due and paid amounts are not equal`() {
+    fun `validate AddExpense should throw an error when sum of due and paid amounts are not equal`() {
         val paidAmounts = listOf(40f, 20f, 50f)
         val dueAmounts = listOf(20f, 30f, 30f)
 
-        val result = expenditureRequestValidation.addExpenditure(
-            AddExpenditureParameters(
+        val result = expenseRequestValidation.addExpense(
+            AddExpenseParameters(
                 paidAmounts.mapIndexed() { index, paidAmount ->
-                    AddExpenditureParametersPayer(
+                    ExpensePayerParameters(
                         2,
                         paidAmount,
                         dueAmounts[index],
@@ -42,14 +42,14 @@ class ExpenditureRequestValidationTest {
     }
 
     @Test
-    fun `validate AddExpenditure should throw an error when one of due or paid amounts has negative value`() {
+    fun `validate AddExpense should throw an error when one of due or paid amounts has negative value`() {
         val paidAmounts = listOf(40f, -20f, 50f)
         val dueAmounts = listOf(-20f, 30f, 60f)
 
-        val result = expenditureRequestValidation.addExpenditure(
-            AddExpenditureParameters(
+        val result = expenseRequestValidation.addExpense(
+            AddExpenseParameters(
                 paidAmounts.mapIndexed() { index, paidAmount ->
-                    AddExpenditureParametersPayer(
+                    ExpensePayerParameters(
                         2,
                         paidAmount,
                         dueAmounts[index],
@@ -65,9 +65,9 @@ class ExpenditureRequestValidationTest {
     }
 
     @Test
-    fun `validate UpdateExpenditure should throw an error when there is no change to perform`() {
-        val result = expenditureRequestValidation.updateExpenditure(
-            UpdateExpenditureParameters(
+    fun `validate UpdateExpense should throw an error when there is no change to perform`() {
+        val result = expenseRequestValidation.updateExpense(
+            UpdateExpenseParameters(
                 null,
                 null,
             ),
@@ -79,9 +79,9 @@ class ExpenditureRequestValidationTest {
     }
 
     @Test
-    fun `validate UpdateExpenditure should be ok, when at least one change is provided`() {
-        val result = expenditureRequestValidation.updateExpenditure(
-            UpdateExpenditureParameters(
+    fun `validate UpdateExpense should be ok, when at least one change is provided`() {
+        val result = expenseRequestValidation.updateExpense(
+            UpdateExpenseParameters(
                 null,
                 "new desc",
             ),
@@ -93,14 +93,14 @@ class ExpenditureRequestValidationTest {
     }
 
     @Test
-    fun `validate UpdateExpenditure should throw an error when sum of due and paid amounts are not equal`() {
+    fun `validate UpdateExpense should throw an error when sum of due and paid amounts are not equal`() {
         val paidAmounts = listOf(40f, 20f, 50f)
         val dueAmounts = listOf(20f, 30f, 30f)
 
-        val result = expenditureRequestValidation.updateExpenditure(
-            UpdateExpenditureParameters(
+        val result = expenseRequestValidation.updateExpense(
+            UpdateExpenseParameters(
                 paidAmounts.mapIndexed() { index, paidAmount ->
-                    AddExpenditureParametersPayer(
+                    ExpensePayerParameters(
                         2,
                         paidAmount,
                         dueAmounts[index],
@@ -116,14 +116,14 @@ class ExpenditureRequestValidationTest {
     }
 
     @Test
-    fun `validate UpdateExpenditure should throw an error when one of due or paid amounts has negative value`() {
+    fun `validate UpdateExpense should throw an error when one of due or paid amounts has negative value`() {
         val paidAmounts = listOf(40f, -20f, 50f)
         val dueAmounts = listOf(-20f, 30f, 60f)
 
-        val result = expenditureRequestValidation.updateExpenditure(
-            UpdateExpenditureParameters(
+        val result = expenseRequestValidation.updateExpense(
+            UpdateExpenseParameters(
                 paidAmounts.mapIndexed() { index, paidAmount ->
-                    AddExpenditureParametersPayer(
+                    ExpensePayerParameters(
                         2,
                         paidAmount,
                         dueAmounts[index],

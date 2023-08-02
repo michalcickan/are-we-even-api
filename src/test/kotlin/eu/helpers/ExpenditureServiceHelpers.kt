@@ -1,7 +1,7 @@
 package eu.helpers
 
-import eu.models.parameters.AddExpenditureParameters
-import eu.models.parameters.AddExpenditureParametersPayer
+import eu.models.parameters.expense.AddExpenseParameters
+import eu.models.parameters.expense.ExpensePayerParameters
 import eu.models.responses.users.User
 import eu.models.responses.users.toUser
 import eu.tables.GroupDAO
@@ -29,10 +29,10 @@ suspend fun MockTransactionHandler.makeGroupAndGetId(userId: Long): Int {
     }.id.value
 }
 
-fun List<User>.makeParams(paidAmounts: List<Float>, dueAmounts: List<Float>): AddExpenditureParameters {
-    return AddExpenditureParameters(
+fun List<User>.makeParams(paidAmounts: List<Float>, dueAmounts: List<Float>): AddExpenseParameters {
+    return AddExpenseParameters(
         mapIndexed { index, payer ->
-            AddExpenditureParametersPayer(
+            ExpensePayerParameters(
                 id = payer.id,
                 paidAmounts[index],
                 dueAmounts[index],

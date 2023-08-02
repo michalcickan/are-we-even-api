@@ -5,18 +5,18 @@ import org.jetbrains.exposed.dao.IntEntityClass
 import org.jetbrains.exposed.dao.id.EntityID
 import org.jetbrains.exposed.dao.id.IntIdTable
 
-object UserExpenditures : IntIdTable() {
+object UsersExpenses : IntIdTable() {
     val userId = reference("userId", Users)
-    val expenditureId = reference("expenditureId", Expenditures)
+    val expenseId = reference("expenseId", Expenses)
     val paidAmount = float("paidAmount")
     val dueAmount = float("dueAmount")
 }
 
-class UserExpenditureDAO(id: EntityID<Int>) : IntEntity(id) {
-    companion object : IntEntityClass<UserExpenditureDAO>(UserExpenditures)
+class UserExpenseDAO(id: EntityID<Int>) : IntEntity(id) {
+    companion object : IntEntityClass<UserExpenseDAO>(UsersExpenses)
 
-    var user by UserDAO referencedOn UserExpenditures.userId
-    var expenditureID by ExpenditureDAO referencedOn UserExpenditures.expenditureId
-    var paidAmount by UserExpenditures.paidAmount
-    var dueAmount by UserExpenditures.dueAmount
+    var user by UserDAO referencedOn UsersExpenses.userId
+    var expenseID by ExpenseDAO referencedOn UsersExpenses.expenseId
+    var paidAmount by UsersExpenses.paidAmount
+    var dueAmount by UsersExpenses.dueAmount
 }

@@ -1,6 +1,6 @@
 // import eu.helpers.MockTransactionHandler
-// import eu.models.parameters.AddExpenditureParameters
-// import eu.models.parameters.AddExpenditureParametersPayer
+// import eu.models.parameters.expense.AddExpenseParameters
+// import eu.models.parameters.expense.AddExpenseParametersPayer
 // import eu.models.parameters.LoginParameters
 // import eu.models.responses.AccessToken
 // import eu.models.responses.GenericResponse
@@ -141,13 +141,13 @@
 //        val client = setupAndGetHttpClient()
 //        val paidAmounts = listOf(20f, 30f, -40f)
 //        val dueAmounts = listOf(30f, 30f, 30f)
-//        val result = client.post("/groups/2/expenditure") {
+//        val result = client.post("/groups/2/expense") {
 //            contentType(ContentType.Application.Json)
 //            bearerAuth("test")
 //            setBody(
-//                AddExpenditureParameters(
+//                AddExpenseParameters(
 //                    users = paidAmounts.mapIndexed { index, amount ->
-//                        AddExpenditureParametersPayer(
+//                        AddExpenseParametersPayer(
 //                            2,
 //                            amount,
 //                            dueAmounts[index],

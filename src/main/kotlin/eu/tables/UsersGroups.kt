@@ -13,6 +13,6 @@ object UsersGroups : IntIdTable() {
 class UserGroupDAO(id: EntityID<Int>) : IntEntity(id) {
     companion object : IntEntityClass<UserGroupDAO>(UsersGroups)
 
-    var groupId by GroupDAO referencedOn UsersGroups.groupId
-    var userId by UserDAO referencedOn UsersGroups.userId
+    var group by GroupDAO referencedOn UsersGroups.groupId
+    var user by UserDAO referencedOn UsersGroups.userId
 }

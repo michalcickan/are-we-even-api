@@ -1,9 +1,9 @@
 package eu.services
 
 import eu.helpers.*
-import eu.models.parameters.AddExpenditureParametersPayer
-import eu.models.parameters.UpdateExpenditureParameters
-import eu.models.responses.toExpenditure
+import eu.models.parameters.expense.ExpensePayerParameters
+import eu.models.parameters.expense.UpdateExpenseParameters
+import eu.models.responses.toExpense
 import eu.tables.*
 import io.mockk.clearAllMocks
 import kotlinx.coroutines.runBlocking
@@ -14,14 +14,14 @@ import kotlin.test.assertContentEquals
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 
-class ExpenditureServiceForCRUDTest {
+class ExpenseServiceForCRUDTest {
     private val transactionHandler = MockTransactionHandler()
-    private lateinit var expenditureService: ExpenditureService
+    private lateinit var expenseService: ExpenseService
 
     @Before
     fun setup() {
-        transactionHandler.createTables(arrayOf(UserExpenditures, Users, Expenditures, Owees, Groups))
-        expenditureService = ExpenditureService(transactionHandler)
+        transactionHandler.createTables(arrayOf(UsersExpenses, Users, Expenses, Owees, Groups))
+        expenseService = ExpenseService(transactionHandler)
     }
 
     @After
@@ -31,56 +31,56 @@ class ExpenditureServiceForCRUDTest {
     }
 
     @Test
-    fun `should insert correct total amount when adding expenditure`() = runBlocking {
+    fun `should insert correct total amount when adding expense`() = runBlocking {
         val users = transactionHandler.fillUsers()
         val paidAmounts = listOf(20f, 30f, 40f)
         val dueAmounts = listOf(30f, 30f, 10f)
-        val expenditure = expenditureService.addExpenditure(
+        val expense = expenseService.addExpense(
             users.makeParams(paidAmounts, dueAmounts),
             transactionHandler.makeGroupAndGetId(users[0].id),
         )
-        val databaseExpenditure = transactionHandler.perform {
-            ExpenditureDAO.find { Expenditures.id eq expenditure.id }.first()
-        }.toExpenditure(null)
-        assertEquals(databaseExpenditure.totalAmount, paidAmounts.sum())
+        val databaseExpense = transactionHandler.perform {
+            ExpenseDAO.find { Expenses.id eq expense.id }.first()
+        }.toExpense(null)
+        assertEquals(databaseExpense.totalAmount, paidAmounts.sum())
     }
 
     @Test
-    fun `should insert have all payers with correct amount in userexpenditures table`() = runBlocking {
+    fun `should insert have all payers with correct amount in userexpenses table`() = runBlocking {
         val users = transactionHandler.fillUsers()
         val paidAmounts = listOf(20f, 30f, 40f)
         val dueAmounts = listOf(30f, 30f, 10f)
-        val expenditure = expenditureService.addExpenditure(
+        val expense = expenseService.addExpense(
             users.makeParams(paidAmounts, dueAmounts),
             transactionHandler.makeGroupAndGetId(users[0].id),
         )
-        val databaseUserExpenditureIds = runCatching {
+        val databaseUserExpenseIds = runCatching {
             transactionHandler.perform {
-                UserExpenditureDAO
-                    .find { UserExpenditures.expenditureId eq expenditure.id }
+                UserExpenseDAO
+                    .find { UsersExpenses.expenseId eq expense.id }
                     .map { it.user.id.value }
             }
         }
             .onSuccess { e -> e }
             .getOrDefault(emptySet())
         val payersUserIds = users.map { it.id }
-        assertContentEquals(payersUserIds, databaseUserExpenditureIds)
+        assertContentEquals(payersUserIds, databaseUserExpenseIds)
     }
 
     @Test
-    fun `should insert only payers with amount above zero in userexpenditures table`() = runBlocking {
+    fun `should insert only payers with amount above zero in userexpenses table`() = runBlocking {
         val users = transactionHandler.fillUsers()
         val paidAmounts = listOf(20f, 30f, 0f)
         val dueAmounts = listOf(10f, 30f, 10f)
         val groupId = transactionHandler.makeGroupAndGetId(users[0].id)
-        val expenditure = expenditureService.addExpenditure(
+        val expense = expenseService.addExpense(
             users.makeParams(paidAmounts, dueAmounts),
             groupId,
         )
-        val databaseUserExpenditureIds = runCatching {
+        val databaseUserExpenseIds = runCatching {
             transactionHandler.perform {
-                UserExpenditureDAO
-                    .find { UserExpenditures.expenditureId eq expenditure.id }
+                UserExpenseDAO
+                    .find { UsersExpenses.expenseId eq expense.id }
                     .map { it.user.id.value }
             }
         }
@@ -90,7 +90,7 @@ class ExpenditureServiceForCRUDTest {
             .filterIndexed { index, _ -> paidAmounts[index] > 0f }
             .map { it.id }
 
-        assertContentEquals(payersUserIds, databaseUserExpenditureIds)
+        assertContentEquals(payersUserIds, databaseUserExpenseIds)
     }
 
     @Test
@@ -99,7 +99,7 @@ class ExpenditureServiceForCRUDTest {
         val paidAmounts = listOf(40f, 20f, 50f)
         val dueAmounts = listOf(40f, 20f, 50f)
         var groupId = transactionHandler.makeGroupAndGetId(users[0].id)
-        expenditureService.addExpenditure(
+        expenseService.addExpense(
             users.makeParams(paidAmounts, dueAmounts),
             groupId,
         )
@@ -112,7 +112,7 @@ class ExpenditureServiceForCRUDTest {
     }
 
     @Test
-    fun `should correctly update expenditure description`() = runBlocking {
+    fun `should correctly update expense description`() = runBlocking {
         val users = transactionHandler.fillUsers()
         val name = "testing"
         val group = transactionHandler.perform {
@@ -123,27 +123,27 @@ class ExpenditureServiceForCRUDTest {
         }
         val paidAmounts = listOf(40f, 20f, 50f)
         val dueAmounts = listOf(20f, 30f, 60f)
-        val expenditure = expenditureService.addExpenditure(
+        val expense = expenseService.addExpense(
             users.makeParams(paidAmounts, dueAmounts),
             group.id.value,
         )
         val expectedDescription = "updated_description"
-        expenditureService.updateExpenditure(
-            UpdateExpenditureParameters(
+        expenseService.updateExpense(
+            UpdateExpenseParameters(
                 null,
                 description = expectedDescription,
             ),
             group.id.value,
-            expenditureId = expenditure.id,
+            expenseId = expense.id,
         )
-        val resultExpenditure = transactionHandler.perform {
-            ExpenditureDAO[expenditure.id]
+        val resultExpense = transactionHandler.perform {
+            ExpenseDAO[expense.id]
         }
-        assertEquals(expectedDescription, resultExpenditure.description)
+        assertEquals(expectedDescription, resultExpense.description)
     }
 
     @Test
-    fun `should correctly update total sum for expenditure`() = runBlocking {
+    fun `should correctly update total sum for expense`() = runBlocking {
         val users = transactionHandler.fillUsers()
         val name = "testing"
         val group = transactionHandler.perform {
@@ -154,17 +154,17 @@ class ExpenditureServiceForCRUDTest {
         }
         val paidAmounts = listOf(40f, 20f, 50f)
         val dueAmounts = listOf(20f, 30f, 60f)
-        val expenditure = expenditureService.addExpenditure(
+        val expense = expenseService.addExpense(
             users.makeParams(paidAmounts, dueAmounts),
             group.id.value,
         )
         val updatedPaidAmounts = listOf(30f, 20f, 10f)
         val updatedDueAmounts = listOf(10f, 20f, 30f)
 
-        expenditureService.updateExpenditure(
-            UpdateExpenditureParameters(
+        expenseService.updateExpense(
+            UpdateExpenseParameters(
                 users.mapIndexed { index, payer ->
-                    AddExpenditureParametersPayer(
+                    ExpensePayerParameters(
                         id = payer.id,
                         updatedPaidAmounts[index],
                         updatedDueAmounts[index],
@@ -173,16 +173,16 @@ class ExpenditureServiceForCRUDTest {
                 null,
             ),
             group.id.value,
-            expenditureId = expenditure.id,
+            expenseId = expense.id,
         )
-        val resultExpenditure = transactionHandler.perform {
-            ExpenditureDAO[expenditure.id]
+        val resultExpense = transactionHandler.perform {
+            ExpenseDAO[expense.id]
         }
-        assertEquals(60f, resultExpenditure.totalAmount)
+        assertEquals(60f, resultExpense.totalAmount)
     }
 
     @Test
-    fun `should correctly update payers sums when updating expenditure`() = runBlocking {
+    fun `should correctly update payers sums when updating expense`() = runBlocking {
         val users = transactionHandler.fillUsers()
         val name = "testing"
         val group = transactionHandler.perform {
@@ -193,17 +193,17 @@ class ExpenditureServiceForCRUDTest {
         }
         val paidAmounts = listOf(40f, 20f, 50f)
         val dueAmounts = listOf(20f, 30f, 60f)
-        val expenditure = expenditureService.addExpenditure(
+        val expense = expenseService.addExpense(
             users.makeParams(paidAmounts, dueAmounts),
             group.id.value,
         )
         val updatedPaidAmounts = listOf(30f, 20f, 10f)
         val updatedDueAmounts = listOf(10f, 20f, 30f)
 
-        expenditureService.updateExpenditure(
-            UpdateExpenditureParameters(
+        expenseService.updateExpense(
+            UpdateExpenseParameters(
                 users.mapIndexed { index, payer ->
-                    AddExpenditureParametersPayer(
+                    ExpensePayerParameters(
                         id = payer.id,
                         updatedPaidAmounts[index],
                         updatedDueAmounts[index],
@@ -212,54 +212,54 @@ class ExpenditureServiceForCRUDTest {
                 null,
             ),
             group.id.value,
-            expenditureId = expenditure.id,
+            expenseId = expense.id,
         )
         transactionHandler.perform {
-            val resultExpenditure = UserExpenditureDAO
-                .find { UserExpenditures.expenditureId eq expenditure.id }
-            resultExpenditure.forEach { userExpenditure ->
-                val userIndex = users.indexOfFirst { it.email == userExpenditure.user.email }
+            val resultExpense = UserExpenseDAO
+                .find { UsersExpenses.expenseId eq expense.id }
+            resultExpense.forEach { userExpense ->
+                val userIndex = users.indexOfFirst { it.email == userExpense.user.email }
                 assertEquals(
                     updatedPaidAmounts[userIndex],
-                    userExpenditure.paidAmount,
-                    "Updated paid amount is not correct for ${userExpenditure.user.email}",
+                    userExpense.paidAmount,
+                    "Updated paid amount is not correct for ${userExpense.user.email}",
                 )
                 assertEquals(
                     updatedDueAmounts[userIndex],
-                    userExpenditure.dueAmount,
-                    "Updated due amount is not correct for ${userExpenditure.user.email}",
+                    userExpense.dueAmount,
+                    "Updated due amount is not correct for ${userExpense.user.email}",
                 )
             }
         }
     }
 
     @Test
-    fun `should get expenditure users when requesting for detail`() = runBlocking {
+    fun `should get expense users when requesting for detail`() = runBlocking {
         val users = transactionHandler.fillUsers(3)
         val groupId = transactionHandler.makeGroupAndGetId(users[0].id)
         val paidAmounts = listOf(40f, 20f, 50f)
         val dueAmounts = listOf(20f, 30f, 60f)
-        val expenditure = expenditureService.addExpenditure(
+        val expense = expenseService.addExpense(
             users.makeParams(paidAmounts, dueAmounts),
             groupId,
         )
 
-        val result = expenditureService.getExpenditure(expenditure.id)
+        val result = expenseService.getExpense(expense.id)
         assertEquals(result.participants?.size, 3)
     }
 
     @Test
-    fun `should get expenditure users with appropriate amounts when requesting for detail`() = runBlocking {
+    fun `should get expense users with appropriate amounts when requesting for detail`() = runBlocking {
         val users = transactionHandler.fillUsers(3)
         val groupId = transactionHandler.makeGroupAndGetId(users[0].id)
         val paidAmounts = listOf(40f, 20f, 50f)
         val dueAmounts = listOf(20f, 30f, 60f)
-        val expenditure = expenditureService.addExpenditure(
+        val expense = expenseService.addExpense(
             users.makeParams(paidAmounts, dueAmounts),
             groupId,
         )
 
-        val result = expenditureService.getExpenditure(expenditure.id)
+        val result = expenseService.getExpense(expense.id)
         var actualPaidAmounts = mutableListOf(0f, 0f, 0f)
         var actualDueAmounts = mutableListOf(0f, 0f, 0f)
         for (user in result.participants!!) {
@@ -272,27 +272,27 @@ class ExpenditureServiceForCRUDTest {
     }
 
     @Test
-    fun `should get only expenditures in given group`() = runBlocking {
+    fun `should get only expenses in given group`() = runBlocking {
         val users = transactionHandler.fillUsers(3)
         val groupId = transactionHandler.makeGroupAndGetId(users[0].id)
         val nextGroupId = transactionHandler.makeGroupAndGetId(users[0].id)
         val paidAmounts = listOf(40f, 20f, 50f)
         val dueAmounts = listOf(20f, 30f, 60f)
-        val first = expenditureService.addExpenditure(
+        val first = expenseService.addExpense(
             users.makeParams(paidAmounts, dueAmounts),
             groupId,
         ).id
-        val second = expenditureService.addExpenditure(
+        val second = expenseService.addExpense(
             users.makeParams(paidAmounts, dueAmounts),
             groupId,
         ).id
-        val third = expenditureService.addExpenditure(
+        val third = expenseService.addExpense(
             users.makeParams(paidAmounts, dueAmounts),
             nextGroupId,
         ).id
         val expected = listOf(first, second).sorted()
-        val expenditures = expenditureService.getAllExpenditures(groupId).map { it.id }.sorted()
-        assertEquals(expected, expenditures)
-        assertFalse(expenditures.contains(third))
+        val expenses = expenseService.getAllExpenses(groupId).map { it.id }.sorted()
+        assertEquals(expected, expenses)
+        assertFalse(expenses.contains(third))
     }
 }

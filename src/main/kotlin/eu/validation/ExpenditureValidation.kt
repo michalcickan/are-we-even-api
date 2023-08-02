@@ -1,23 +1,23 @@
 package eu.validation
 
 import eu.exceptions.ValidationException
-import eu.models.parameters.AddExpenditureParameters
-import eu.models.parameters.AddExpenditureParametersPayer
-import eu.models.parameters.UpdateExpenditureParameters
-import eu.utils.ExpenditureUtils
+import eu.models.parameters.expense.AddExpenseParameters
+import eu.models.parameters.expense.ExpensePayerParameters
+import eu.models.parameters.expense.UpdateExpenseParameters
+import eu.utils.ExpenseUtils
 import io.ktor.server.plugins.requestvalidation.*
 
-interface IExpenditureRequestValidation {
-    fun addExpenditure(params: AddExpenditureParameters): ValidationResult
-    fun updateExpenditure(params: UpdateExpenditureParameters): ValidationResult
+interface IExpenseRequestValidation {
+    fun addExpense(params: AddExpenseParameters): ValidationResult
+    fun updateExpense(params: UpdateExpenseParameters): ValidationResult
 }
 
-class ExpenditureRequestValidation : IExpenditureRequestValidation {
-    override fun addExpenditure(params: AddExpenditureParameters): ValidationResult {
+class ExpenseRequestValidation : IExpenseRequestValidation {
+    override fun addExpense(params: AddExpenseParameters): ValidationResult {
         return checkUsers(params.users)
     }
 
-    override fun updateExpenditure(params: UpdateExpenditureParameters): ValidationResult {
+    override fun updateExpense(params: UpdateExpenseParameters): ValidationResult {
         if (params.users == null && params.description == null) {
             return ValidationResult.Invalid(ValidationException.NoChange.message)
         }
@@ -27,16 +27,16 @@ class ExpenditureRequestValidation : IExpenditureRequestValidation {
         return ValidationResult.Valid
     }
 
-    private fun checkUsers(users: List<AddExpenditureParametersPayer>): ValidationResult {
-        val totalPaidAmount = ExpenditureUtils.getTotalPaidAmount(users)
-        val totalDueAmount = ExpenditureUtils.getTotalDueAmount(users)
+    private fun checkUsers(users: List<ExpensePayerParameters>): ValidationResult {
+        val totalPaidAmount = ExpenseUtils.getTotalPaidAmount(users)
+        val totalDueAmount = ExpenseUtils.getTotalDueAmount(users)
         if (totalPaidAmount != totalDueAmount) {
             return ValidationResult.Invalid(ValidationException.TotalPaidAndDueAmountsAreNotEqual.message)
         }
         return checkForNegativeValue(users) ?: ValidationResult.Valid
     }
 
-    private fun checkForNegativeValue(users: List<AddExpenditureParametersPayer>): ValidationResult? {
+    private fun checkForNegativeValue(users: List<ExpensePayerParameters>): ValidationResult? {
         for (user in users) {
             if (user.dueAmount < 0 || user.paidAmount < 0) {
                 return ValidationResult.Invalid(ValidationException.PaidOrDueAmountCannotBeNegative.message)

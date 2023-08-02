@@ -1,7 +1,5 @@
 package eu.models.responses.users
 
-import LoginType
-import LoginTypeDao
 import eu.models.responses.Address
 import eu.models.responses.toAddress
 import eu.tables.AddressDAO
@@ -29,8 +27,15 @@ fun UserDAO.toUser(addresses: List<AddressDAO>? = null): User {
     )
 }
 
-fun LoginTypeDao.toLoginType(): LoginType {
-    return this.loginType
+fun UserDAO.toSimpleUser(): User {
+    return User(
+        id.value,
+        name,
+        middleName,
+        surname,
+        null,
+        email,
+    )
 }
 
 /*
