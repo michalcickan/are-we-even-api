@@ -1,11 +1,14 @@
-
 import eu.tables.RefreshTokenDAO
+import eu.utils.DateSerializer
 import eu.utils.toDate
+import kotlinx.serialization.Serializable
 import java.util.*
 
+@Serializable
 data class RefreshToken(
     val id: Int,
     val refreshToken: String,
+    @Serializable(with = DateSerializer::class)
     val expiryDate: Date,
     val userId: Long,
 )
