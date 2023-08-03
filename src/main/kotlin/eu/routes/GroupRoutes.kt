@@ -1,7 +1,11 @@
 package eu.routes
 
+import eu.exceptions.APIException
 import eu.models.parameters.expense.AddExpenseParameters
-import eu.services.*
+import eu.services.IExpenseService
+import eu.services.IGroupService
+import eu.services.IInvitationService
+import eu.services.IJWTService
 import handleRequestWithExceptions
 import io.ktor.server.application.*
 import io.ktor.server.auth.*
@@ -11,7 +15,7 @@ import org.koin.ktor.ext.inject
 
 fun Route.groupRoutes() {
     val jwtService by inject<IJWTService>()
-    val groupsRouteService by inject<IGroupService>()
+    val groupsService by inject<IGroupService>()
     val expenseService by inject<IExpenseService>()
     val invitationService by inject<IInvitationService>()
 
@@ -32,11 +36,25 @@ fun Route.groupRoutes() {
             }
         }
 
-        put("groups/{groupId}/expenses/{expenseId}") {
+        // resolution can be either accept or decline
+        post("groups/invitations/{invitationId}/{resolution}") {
+            handleRequestWithExceptions(call) {
+                val resolution = call.parameters["resolution"]
+                if (resolution != "accept" || resolution != "decline") {
+                    throw APIException.NotFound
+                }
+                groupsService.resolveInvitationToGroup(
+                    jwtService.getUserIdFromPrincipalPayload(call.principal()),
+                    call.parameters["invitationId"]!!.toInt(),
+                    resolution == "accepted",
+                )
+            }
+        }
+
+        put("groups/expenses/{expenseId}") {
             handleRequestWithExceptions(call) {
                 expenseService.updateExpense(
                     call.receive(),
-                    call.parameters["groupId"]!!.toInt(),
                     call.parameters["expenseId"]!!.toInt(),
                 )
             }
@@ -51,7 +69,7 @@ fun Route.groupRoutes() {
 
         post("group") {
             handleRequestWithExceptions(call) {
-                groupsRouteService.createGroup(
+                groupsService.createGroup(
                     call.receive(),
                     jwtService.getUserIdFromPrincipalPayload(call.principal()),
                 )
@@ -60,7 +78,7 @@ fun Route.groupRoutes() {
 
         get("groups") {
             handleRequestWithExceptions(call) {
-                groupsRouteService.getGroupsForUser(
+                groupsService.getGroupsForUser(
                     jwtService.getUserIdFromPrincipalPayload(call.principal()),
                 )
             }
@@ -68,7 +86,7 @@ fun Route.groupRoutes() {
 
         post("groups/{groupId}/users/{userId}") {
             handleRequestWithExceptions(call) {
-                groupsRouteService.addUserToGroup(
+                groupsService.inviteUserToGroup(
                     call.parameters["groupId"]!!.toInt(),
                     call.parameters["userId"]!!.toLong(),
                 )

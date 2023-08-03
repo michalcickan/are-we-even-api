@@ -43,9 +43,9 @@ fun Route.userRoutes() {
         get("/users/search") {
             handleRequestWithExceptions(call) {
                 val queryParameters = call.request.queryParameters
-                val name = queryParameters["filter_col"]
+                val rawFilterCol = queryParameters["filter_col"]
                 var query: String = queryParameters["query"] ?: throw ValidationException.QueryIsMissing
-                val column = name?.let { it1 -> enumValueOf<UserFilterColumn>(it1) }
+                val column = rawFilterCol?.let { it1 -> enumValueOf<UserFilterColumn>(it1) }
 
                 userService.searchUsers(query, column)
             }

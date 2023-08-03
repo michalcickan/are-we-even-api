@@ -5,10 +5,10 @@ import kotlinx.serialization.Serializable
 
 @Serializable
 data class Group(
-    val name: String,
     val id: Int,
+    val name: String,
 )
 
 fun GroupDAO.toGroup(): Group {
-    return Group(name, id.value)
+    return Group(id.value, name)
 }

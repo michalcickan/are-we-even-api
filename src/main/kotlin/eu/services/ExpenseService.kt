@@ -17,7 +17,6 @@ interface IExpenseService {
     suspend fun addExpense(params: AddExpenseParameters, groupId: Int): Expense
     suspend fun updateExpense(
         params: UpdateExpenseParameters,
-        groupId: Int,
         expenseId: Int,
     ): Expense
 }
@@ -62,7 +61,6 @@ class ExpenseService(
 
     override suspend fun updateExpense(
         params: UpdateExpenseParameters,
-        groupId: Int,
         expenseId: Int,
     ): Expense {
         return transactionHandler.perform {

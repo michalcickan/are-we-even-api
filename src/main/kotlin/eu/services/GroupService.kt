@@ -11,9 +11,9 @@ import org.jetbrains.exposed.sql.select
 
 interface IGroupService {
     suspend fun createGroup(params: CreateGroupParameters, creatorUserId: Long): Group
-    suspend fun handleInvitation(groupId: Int, userId: Long, invitationId: Int, accepted: Boolean)
+    suspend fun resolveInvitationToGroup(userId: Long, invitationId: Int, accepted: Boolean)
 
-    suspend fun addUserToGroup(groupId: Int, userId: Long)
+    suspend fun inviteUserToGroup(groupId: Int, userId: Long)
     suspend fun getGroupsForUser(userId: Long): List<Group>
 }
 
@@ -35,8 +35,9 @@ class GroupService(
         }
     }
 
-    override suspend fun handleInvitation(groupId: Int, userId: Long, invitationId: Int, accepted: Boolean) {
-        invitationService.handleInvitation(invitationId, accepted)
+    override suspend fun resolveInvitationToGroup(userId: Long, invitationId: Int, accepted: Boolean) {
+        val invitation = invitationService.handleInvitation(invitationId, accepted)
+        val groupId = invitation.group.id
         if (accepted) {
             this.checkIfUserInGroup(groupId, userId)
             transactionHandler.perform {
@@ -48,7 +49,7 @@ class GroupService(
         }
     }
 
-    override suspend fun addUserToGroup(groupId: Int, userId: Long) {
+    override suspend fun inviteUserToGroup(groupId: Int, userId: Long) {
         this.checkIfUserInGroup(groupId, userId)
         invitationService.makeUserInvitationForGroup(groupId, userId)
     }
@@ -60,8 +61,8 @@ class GroupService(
                 .select { UsersGroups.userId eq userId }
                 .map {
                     Group(
-                        it[Groups.name],
                         it[Groups.id].value,
+                        it[Groups.name],
                     )
                 }
         }

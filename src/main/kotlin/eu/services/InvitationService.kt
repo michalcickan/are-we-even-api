@@ -12,7 +12,7 @@ import org.jetbrains.exposed.sql.and
 
 interface IInvitationService {
     suspend fun makeUserInvitationForGroup(groupId: Int, userId: Long): Invitation
-    suspend fun handleInvitation(invitationId: Int, accept: Boolean)
+    suspend fun handleInvitation(invitationId: Int, accept: Boolean): Invitation
 
     suspend fun getInvitations(userId: Long): List<Invitation>
 }
@@ -34,10 +34,11 @@ class InvitationService(
         }
     }
 
-    override suspend fun handleInvitation(invitationId: Int, accepted: Boolean) {
+    override suspend fun handleInvitation(invitationId: Int, accepted: Boolean): Invitation {
         return transactionHandler.perform {
             val invitation = InvitationDAO[invitationId]
             invitation.accepted = accepted
+            invitation.toInvitation()
         }
     }
 

@@ -8,7 +8,10 @@ import eu.models.parameters.CreateGroupParameters
 import eu.models.responses.Group
 import eu.models.responses.Invitation
 import eu.tables.*
-import io.mockk.*
+import io.mockk.clearAllMocks
+import io.mockk.coEvery
+import io.mockk.coVerify
+import io.mockk.mockk
 import junit.framework.TestCase.assertNotNull
 import kotlinx.coroutines.runBlocking
 import org.jetbrains.exposed.sql.and
@@ -138,9 +141,9 @@ class GroupServiceTest {
             coEvery { mockInvitationService.makeUserInvitationForGroup(any(), any()) } returns Invitation(
                 1,
                 testingUser,
-                Group("test", groupId),
+                Group(groupId, "test"),
             )
-            groupService.addUserToGroup(groupId, testingUser.id)
+            groupService.inviteUserToGroup(groupId, testingUser.id)
 
             val databaseRecord = transactionHandler.perform {
                 UserGroupDAO
@@ -161,9 +164,12 @@ class GroupServiceTest {
             val testingUser = users[1].id
             val accepted = false
             val mockInvitationId = 2
-            coEvery { mockInvitationService.handleInvitation(any(), any()) } just Runs
-            groupService.handleInvitation(
-                groupId,
+            coEvery { mockInvitationService.handleInvitation(any(), any()) } returns Invitation(
+                mockInvitationId,
+                users[0],
+                Group(groupId, "test"),
+            )
+            groupService.resolveInvitationToGroup(
                 testingUser,
                 mockInvitationId,
                 accepted,
@@ -184,13 +190,15 @@ class GroupServiceTest {
     fun `handleInvitation should call handleInvitation from invitationService`() =
         runBlocking {
             val users = transactionHandler.fillUsers(2)
-            val groupId = transactionHandler.makeGroupAndGetId(users[0].id)
             val testingUser = users[1].id
             val accepted = false
             val mockInvitationId = 2
-            coEvery { mockInvitationService.handleInvitation(any(), any()) } just Runs
-            groupService.handleInvitation(
-                groupId,
+            coEvery { mockInvitationService.handleInvitation(any(), any()) } returns Invitation(
+                mockInvitationId,
+                users[0],
+                Group(2, "test"),
+            )
+            groupService.resolveInvitationToGroup(
                 testingUser,
                 mockInvitationId,
                 accepted,
@@ -205,9 +213,12 @@ class GroupServiceTest {
             val groupId = transactionHandler.makeGroupAndGetId(users[0].id)
             val testingUser = users[1].id
             val accepted = true
-            coEvery { mockInvitationService.handleInvitation(any(), any()) } just Runs
-            groupService.handleInvitation(
-                groupId,
+            coEvery { mockInvitationService.handleInvitation(any(), any()) } returns Invitation(
+                2,
+                users[0],
+                Group(groupId, "test"),
+            )
+            groupService.resolveInvitationToGroup(
                 testingUser,
                 2,
                 accepted,
@@ -236,7 +247,7 @@ class GroupServiceTest {
                 testingUserId,
             )
             val result = runCatching {
-                groupService.addUserToGroup(group.id, testingUserId)
+                groupService.inviteUserToGroup(group.id, testingUserId)
             }
                 .onFailure { e -> e }
                 .exceptionOrNull()
