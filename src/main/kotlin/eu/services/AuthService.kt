@@ -22,6 +22,7 @@ interface IAuthService {
     suspend fun loginWith(parameters: LoginParameters, loginType: LoginType): AccessToken
     suspend fun registerWith(parameters: RegistrationParameters): AccessToken
     suspend fun recreateAccessToken(parameters: RefreshTokenParameters): AccessToken
+    suspend fun logout(userId: Long)
 }
 
 class AuthService(
@@ -63,6 +64,10 @@ class AuthService(
             LoginType.EMAIL,
             refreshToken.userId,
         )
+    }
+
+    override suspend fun logout(userId: Long) {
+        return jwtService.removeTokens(userId)
     }
 
     private suspend fun loginWithGoogle(idToken: String): User? {

@@ -4,9 +4,11 @@ import LoginType
 import com.google.api.client.http.javanet.NetHttpTransport
 import com.google.api.client.json.gson.GsonFactory
 import eu.services.IAuthService
+import eu.services.IJWTService
 import handleRequestWithExceptions
 import io.github.cdimascio.dotenv.dotenv
 import io.ktor.server.application.*
+import io.ktor.server.auth.*
 import io.ktor.server.request.*
 import io.ktor.server.routing.*
 import org.koin.ktor.ext.inject
@@ -18,6 +20,7 @@ val jsonFactory = GsonFactory()
 
 fun Route.authRoutes() {
     val authService by inject<IAuthService>()
+    val jwtService by inject<IJWTService>()
 
     post("/login/{loginType}") {
         handleRequestWithExceptions(call) {
@@ -49,6 +52,18 @@ fun Route.authRoutes() {
     post("/token") {
         handleRequestWithExceptions(call) {
             authService.recreateAccessToken(call.receive())
+        }
+    }
+
+    authenticate("auth-jwt") {
+        post("/logout") {
+            handleRequestWithExceptions(call) {
+                authService.logout(
+                    jwtService.getUserIdFromPrincipalPayload(
+                        call.principal(),
+                    ),
+                )
+            }
         }
     }
 }
