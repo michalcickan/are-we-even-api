@@ -4,6 +4,7 @@ import eu.exceptions.APIException
 import eu.helpers.MockTransactionHandler
 import eu.models.parameters.UpdateUserParameters
 import eu.models.responses.users.toUser
+import eu.tables.Addresses
 import eu.tables.RefreshTokens
 import eu.tables.UserDAO
 import eu.tables.Users
@@ -23,7 +24,7 @@ class UserSeviceTest {
 
     @Before
     fun setup() {
-        transactionHandler.createTables(arrayOf(RefreshTokens, Users))
+        transactionHandler.createTables(arrayOf(RefreshTokens, Users, Addresses))
         userService = UserService(transactionHandler, AuthRequestValidation())
     }
 

@@ -7,6 +7,7 @@ import eu.exceptions.APIException
 import eu.models.parameters.LoginParameters
 import eu.models.parameters.RefreshTokenParameters
 import eu.models.parameters.RegistrationParameters
+import eu.models.parameters.UpdateUserParameters
 import eu.models.responses.AccessToken
 import eu.models.responses.users.User
 import eu.routes.env
@@ -82,16 +83,25 @@ class AuthService(
             async { verifyGoogleIdToken(idToken) }
         }
         val googleIdToken = response.await()
-        val payload = googleIdToken?.payload
+        val payload = googleIdToken?.payload ?: return null
+        val existingUser = userService.getUser(payload.email)
         return when {
-            payload != null -> userService.createUser(
+            existingUser != null -> userService.updateUser(
+                existingUser.id,
+                UpdateUserParameters(
+                    payload.email,
+                    payload["given_name"].toString(),
+                    null,
+                    payload["family_name"].toString(),
+                ),
+            )
+
+            else -> userService.createUser(
                 payload.email,
                 payload["given_name"].toString(),
                 null,
                 payload["family_name"].toString(),
             )
-
-            else -> null
         }
     }
 

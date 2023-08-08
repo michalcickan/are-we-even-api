@@ -29,7 +29,7 @@ interface IUserService {
     suspend fun updateUser(
         userId: Long,
         params: UpdateUserParameters,
-    )
+    ): User
 
     suspend fun storeUserPassword(
         userId: Long,
@@ -76,21 +76,21 @@ class UserService(
 
     override suspend fun getUser(id: Long): User {
         return transactionHandler.perform {
-            val addresses = AddressDAO.find { Addresses.user eq id }.toList()
-            UserDAO[id].toUser(addresses)
+            UserDAO[id].toUser(getAddresses(id))
         }
     }
 
     override suspend fun updateUser(
         userId: Long,
         params: UpdateUserParameters,
-    ) {
+    ): User {
         return transactionHandler.perform {
             val user = UserDAO.findById(userId) ?: throw APIException.UserDoesNotExist
             user.name = params.name ?: user.name
             user.surname = params.surname ?: user.surname
             user.middleName = params.middleName ?: user.middleName
             user.email = params.email ?: user.email
+            user.toUser(getAddresses(userId))
         }
     }
 
@@ -170,5 +170,9 @@ class UserService(
                 }
             }
         }
+    }
+
+    private fun getAddresses(userId: Long): List<AddressDAO> {
+        return AddressDAO.find { Addresses.user eq userId }.toList()
     }
 }
