@@ -1,4 +1,5 @@
 import eu.exceptions.APIException
+import eu.helpers.StringHelpers
 import eu.models.parameters.LoginParameters
 import eu.models.parameters.RefreshTokenParameters
 import eu.models.parameters.RegistrationParameters
@@ -44,15 +45,14 @@ class AuthServiceTest {
 
     @Test
     fun `loginWith should throw UserDoesNotExist exception for non-existent user`() = runBlocking {
-        // Arrange
         val parameters = LoginParameters(email = "nonexistent@test.eu", password = "password", idToken = null)
         val loginType = LoginType.EMAIL
         coEvery { userService.getUser(email = any()) } returns null
         coEvery { userService.getPassword(any()) } returns "something-encoded"
         every { passwordEncoder.matches(parameters.password, "something-encoded") } returns false
-        // Act & Assert
+        val deviceId = StringHelpers.generateRandomUUID()
         val result = runCatching {
-            authService.loginWith(parameters, loginType)
+            authService.loginWith(parameters, loginType, deviceId)
         }
             .onFailure { e -> e }
             .exceptionOrNull()
@@ -61,16 +61,15 @@ class AuthServiceTest {
 
     @Test
     fun `loginWith should throw LoginNotMatch exception for incorrect password`() = runBlocking {
-        // Arrange
         val parameters = LoginParameters(email = "test@test.eu", password = "incorrect", idToken = null)
         val loginType = LoginType.EMAIL
         coEvery { userService.getUser(email = any()) } returns makeUser()
         coEvery { userService.getPassword(any()) } returns "something-encoded"
         every { passwordEncoder.matches(parameters.password, "something-encoded") } returns false
+        val deviceId = StringHelpers.generateRandomUUID()
 
-        // Act
         val result = runCatching {
-            authService.loginWith(parameters, loginType)
+            authService.loginWith(parameters, loginType, deviceId)
         }
             .onFailure { e -> e }
             .exceptionOrNull()
@@ -79,18 +78,18 @@ class AuthServiceTest {
 
     @Test
     fun `registerWith should create a new user and return an access token`() = runBlocking {
-        // Arrange
         val parameters = RegistrationParameters(email = "newuser@test.eu", password = "Qwerty123!")
 
         coEvery { userService.createUser(any(), any(), any(), any()) } returns makeUser()
-        coEvery { jwtService.createAccessToken(any(), any(), any()) } returns AccessToken(
+        coEvery { jwtService.createAccessToken(any(), any(), any(), any()) } returns AccessToken(
             accessToken = "access_token",
             refreshToken = "refresh_token",
             expiryDate = LocalDateTime.now().plusHours(2).toDate(),
         )
         coEvery { userService.storeUserPassword(any(), any()) } returns Unit
-        // Act
-        val accessToken = authService.registerWith(parameters)
+        val deviceId = StringHelpers.generateRandomUUID()
+
+        val accessToken = authService.registerWith(parameters, deviceId)
 
         // Assert
         assertNotNull(accessToken)
@@ -101,12 +100,10 @@ class AuthServiceTest {
 
     @Test
     fun `recreateAccessToken should create a new access token for a valid refresh token`() = runBlocking {
-        // Arrange
         val refreshToken = "valid_token"
         val parameters = RefreshTokenParameters(refreshToken = refreshToken, clientId = "")
-
         // Mock JWT service to return a valid access token
-        coEvery { jwtService.createAccessToken(any(), any(), any()) } returns AccessToken(
+        coEvery { jwtService.createAccessToken(any(), any(), any(), any()) } returns AccessToken(
             accessToken = "access_token",
             refreshToken = "refresh_token",
             expiryDate = LocalDateTime.now().plusHours(2).toDate(),
@@ -121,9 +118,9 @@ class AuthServiceTest {
             }.time,
             2,
         )
+        val deviceId = StringHelpers.generateRandomUUID()
 
-        // Act
-        val accessToken = authService.recreateAccessToken(parameters)
+        val accessToken = authService.recreateAccessToken(parameters, deviceId)
 
         // Assert
         assertNotNull(accessToken)
@@ -134,7 +131,6 @@ class AuthServiceTest {
 
     @Test
     fun `recreateAccessToken should throw TokenExpired exception for an expired refresh token`() = runBlocking {
-        // Arrange
         val refreshToken = "expired_token"
         val parameters = RefreshTokenParameters(refreshToken = refreshToken, clientId = "")
 
@@ -150,8 +146,11 @@ class AuthServiceTest {
             }.time,
             userId = 2,
         )
+
+        val deviceId = StringHelpers.generateRandomUUID()
+
         val result = runCatching {
-            authService.recreateAccessToken(parameters)
+            authService.recreateAccessToken(parameters, deviceId)
         }
             .onFailure { e -> e }
             .exceptionOrNull()

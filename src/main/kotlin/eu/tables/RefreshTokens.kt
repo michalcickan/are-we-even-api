@@ -11,6 +11,7 @@ object RefreshTokens : IntIdTable() {
     val userId = reference("userId", Users)
     val refreshToken = varchar("refreshToken", 2500)
     val expiryDate = datetime("expiryDate").defaultExpression(CurrentDateTime)
+    val deviceId = reference("deviceId", Devices)
 }
 
 class RefreshTokenDAO(id: EntityID<Int>) : IntEntity(id) {
@@ -19,4 +20,5 @@ class RefreshTokenDAO(id: EntityID<Int>) : IntEntity(id) {
     var refreshToken by RefreshTokens.refreshToken
     var expiryDate by RefreshTokens.expiryDate
     var user by UserDAO referencedOn RefreshTokens.userId
+    var device by DeviceDAO referencedOn RefreshTokens.deviceId
 }

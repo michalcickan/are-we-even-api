@@ -5,11 +5,15 @@ import com.google.api.client.http.javanet.NetHttpTransport
 import com.google.api.client.json.gson.GsonFactory
 import eu.services.IAuthService
 import eu.services.IJWTService
+import eu.utils.CustomHeaderField
+import eu.utils.getHeader
 import handleRequestWithExceptions
 import io.github.cdimascio.dotenv.dotenv
+import io.ktor.http.*
 import io.ktor.server.application.*
 import io.ktor.server.auth.*
 import io.ktor.server.request.*
+import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import org.koin.ktor.ext.inject
 
@@ -22,6 +26,12 @@ fun Route.authRoutes() {
     val authService by inject<IAuthService>()
     val jwtService by inject<IJWTService>()
 
+    this@authRoutes.intercept(ApplicationCallPipeline.Plugins) {
+        if (call.getHeader(CustomHeaderField.DeviceId) == null) {
+            call.respond(HttpStatusCode.Unauthorized)
+        }
+    }
+
     post("/login/{loginType}") {
         handleRequestWithExceptions(call) {
             val loginType = call.parameters["loginType"]
@@ -33,25 +43,33 @@ fun Route.authRoutes() {
                 // Here, I'm assuming a default action of EMAIL login
                 LoginType.EMAIL
             }
-            authService.loginWith(call.receive(), parsedLoginType)
+            authService.loginWith(
+                call.receive(),
+                parsedLoginType,
+                call.deviceId(),
+            )
         }
     }
 
     post("/login") {
         handleRequestWithExceptions(call) {
-            authService.loginWith(call.receive(), LoginType.EMAIL)
+            authService.loginWith(
+                call.receive(),
+                LoginType.EMAIL,
+                call.deviceId(),
+            )
         }
     }
 
     post("/register") {
         handleRequestWithExceptions(call) {
-            authService.registerWith(call.receive())
+            authService.registerWith(call.receive(), call.deviceId())
         }
     }
 
     post("/token") {
         handleRequestWithExceptions(call) {
-            authService.recreateAccessToken(call.receive())
+            authService.recreateAccessToken(call.receive(), call.deviceId())
         }
     }
 
@@ -62,8 +80,13 @@ fun Route.authRoutes() {
                     jwtService.getUserIdFromPrincipalPayload(
                         call.principal(),
                     ),
+                    call.deviceId(),
                 )
             }
         }
     }
+}
+
+private fun ApplicationCall.deviceId(): String {
+    return getHeader(CustomHeaderField.DeviceId) ?: ""
 }

@@ -19,10 +19,10 @@ import org.springframework.security.crypto.password.PasswordEncoder
 import java.util.*
 
 interface IAuthService {
-    suspend fun loginWith(parameters: LoginParameters, loginType: LoginType): AccessToken
-    suspend fun registerWith(parameters: RegistrationParameters): AccessToken
-    suspend fun recreateAccessToken(parameters: RefreshTokenParameters): AccessToken
-    suspend fun logout(userId: Long)
+    suspend fun loginWith(parameters: LoginParameters, loginType: LoginType, deviceId: String): AccessToken
+    suspend fun registerWith(parameters: RegistrationParameters, deviceId: String): AccessToken
+    suspend fun recreateAccessToken(parameters: RefreshTokenParameters, deviceId: String): AccessToken
+    suspend fun logout(userId: Long, deviceId: String)
 }
 
 class AuthService(
@@ -30,7 +30,7 @@ class AuthService(
     private val passwordEncoder: PasswordEncoder,
     private val jwtService: IJWTService,
 ) : IAuthService {
-    override suspend fun loginWith(parameters: LoginParameters, loginType: LoginType): AccessToken {
+    override suspend fun loginWith(parameters: LoginParameters, loginType: LoginType, deviceId: String): AccessToken {
         val user = when (loginType) {
             LoginType.GOOGLE -> loginWithGoogle(parameters.idToken!!)
             LoginType.EMAIL -> loginWithEmail(parameters.email!!, parameters.password!!)
@@ -39,35 +39,42 @@ class AuthService(
         return jwtService.createAccessToken(
             parameters.idToken,
             loginType,
+            deviceId,
             user.id,
         )
     }
 
-    override suspend fun registerWith(parameters: RegistrationParameters): AccessToken {
+    override suspend fun registerWith(parameters: RegistrationParameters, deviceId: String): AccessToken {
         val user = userService.createUser(parameters.email, null, null, null)
         // no need to add "salt", library does it automatically
         userService.storeUserPassword(user.id, passwordEncoder.encode(parameters.password))
         return jwtService.createAccessToken(
             null,
             LoginType.EMAIL,
+            deviceId,
             user.id,
         )
     }
 
-    override suspend fun recreateAccessToken(parameters: RefreshTokenParameters): AccessToken {
+    override suspend fun recreateAccessToken(parameters: RefreshTokenParameters, deviceId: String): AccessToken {
         val refreshToken = jwtService.getRefreshToken(parameters.refreshToken) ?: throw APIException.TokenExpired
         if (refreshToken.expiryDate < Date()) {
             throw APIException.TokenExpired
         }
+        try {
+            jwtService.removeTokens(refreshToken.userId, deviceId)
+        } catch (e: Exception) {
+        }
         return jwtService.createAccessToken(
             null,
             LoginType.EMAIL,
+            deviceId,
             refreshToken.userId,
         )
     }
 
-    override suspend fun logout(userId: Long) {
-        return jwtService.removeTokens(userId)
+    override suspend fun logout(userId: Long, deviceId: String) {
+        return jwtService.removeTokens(userId, deviceId)
     }
 
     private suspend fun loginWithGoogle(idToken: String): User? {

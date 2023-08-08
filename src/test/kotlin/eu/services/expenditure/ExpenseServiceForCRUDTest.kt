@@ -133,8 +133,7 @@ class ExpenseServiceForCRUDTest {
                 null,
                 description = expectedDescription,
             ),
-            group.id.value,
-            expenseId = expense.id,
+            expense.id,
         )
         val resultExpense = transactionHandler.perform {
             ExpenseDAO[expense.id]
@@ -172,7 +171,6 @@ class ExpenseServiceForCRUDTest {
                 },
                 null,
             ),
-            group.id.value,
             expenseId = expense.id,
         )
         val resultExpense = transactionHandler.perform {
@@ -211,7 +209,6 @@ class ExpenseServiceForCRUDTest {
                 },
                 null,
             ),
-            group.id.value,
             expenseId = expense.id,
         )
         transactionHandler.perform {

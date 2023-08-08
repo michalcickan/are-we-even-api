@@ -1,7 +1,7 @@
 package eu.services
 
 import LoginType
-import LoginTypeDao
+import LoginTypeDAO
 import LoginTypes
 import RefreshToken
 import com.auth0.jwt.JWT
@@ -20,18 +20,22 @@ import io.ktor.server.auth.jwt.*
 import org.jetbrains.exposed.dao.IntEntity
 import org.jetbrains.exposed.sql.SizedIterable
 import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
+import org.jetbrains.exposed.sql.and
 import toRefreshToken
 import java.time.LocalDateTime
+import java.util.*
 
 interface IJWTService {
     suspend fun createAccessToken(
         platformSpecificToken: String?,
         loginType: LoginType,
+        deviceId: String,
         userId: Long,
     ): AccessToken
 
     suspend fun removeTokens(
         userId: Long,
+        deviceId: String,
     )
 
     suspend fun getRefreshToken(refreshToken: String): RefreshToken?
@@ -72,21 +76,26 @@ class JWTService(
     override suspend fun createAccessToken(
         platformSpecificToken: String?,
         loginType: LoginType,
+        deviceId: String,
         userId: Long,
     ): AccessToken {
         return transactionHandler.perform {
             val user = UserDAO[userId]
+            val uuid = deviceId.uuid()
+            val device = DeviceDAO.findById(uuid) ?: DeviceDAO.new(uuid) {}
             val refreshToken = RefreshTokenDAO.new {
                 this.user = user
                 this.refreshToken = generateToken(userId, true)
                 this.expiryDate = refreshTokenExpiry().toLocalDateTime()
+                this.device = device
             }
             AccessTokenDAO.new {
                 this.platformAgnosticToken = platformSpecificToken
                 this.accessToken = generateToken(userId, false)
-                this.loginType = LoginTypeDao.find { LoginTypes.loginType eq loginType }.first()
+                this.loginType = LoginTypeDAO.find { LoginTypes.loginType eq loginType }.first()
                 this.user = UserDAO[userId]
                 this.expiryDate = accessTokenExpiry().toLocalDateTime()
+                this.device = device
             }.toAccessToken(refreshToken.refreshToken)
         }
     }
@@ -105,17 +114,21 @@ class JWTService(
         }
     }
 
-    override suspend fun removeTokens(userId: Long) {
+    override suspend fun removeTokens(
+        userId: Long,
+        deviceId: String,
+    ) {
         transactionHandler.perform {
-            try {
-                AccessTokenDAO
-                    .find(AccessTokens.userId eq userId)
-                    .safeRemove()
-                RefreshTokenDAO
-                    .find(RefreshTokens.userId eq userId)
-                    .safeRemove()
-            } catch (e: Exception) {
-            }
+            AccessTokenDAO
+                .find(
+                    (AccessTokens.userId eq userId) and (AccessTokens.deviceId eq deviceId.uuid()),
+                )
+                .safeRemove()
+            RefreshTokenDAO
+                .find(
+                    (RefreshTokens.userId eq userId) and (RefreshTokens.deviceId eq deviceId.uuid()),
+                )
+                .safeRemove()
         }
     }
 
@@ -138,4 +151,8 @@ fun SizedIterable<IntEntity>.safeRemove() {
     if (!empty()) {
         first().delete()
     }
+}
+
+private fun String.uuid(): UUID {
+    return UUID.fromString(this)
 }

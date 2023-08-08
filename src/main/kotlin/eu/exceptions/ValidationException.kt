@@ -23,4 +23,9 @@ sealed class ValidationException(val statusCode: HttpStatusCode, override val me
         HttpStatusCode.UnprocessableEntity,
         "Paid or due amount cannot be negative.",
     )
+
+    object DeviceIdMissing : APIException(
+        HttpStatusCode.Unauthorized,
+        "",
+    )
 }

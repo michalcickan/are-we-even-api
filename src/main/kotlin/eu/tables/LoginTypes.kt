@@ -12,8 +12,8 @@ object LoginTypes : IntIdTable() {
     val loginType: Column<LoginType> = enumerationByName("login_type", 20, LoginType::class).uniqueIndex()
 }
 
-class LoginTypeDao(id: EntityID<Int>) : IntEntity(id) {
-    companion object : IntEntityClass<LoginTypeDao>(LoginTypes) {
+class LoginTypeDAO(id: EntityID<Int>) : IntEntity(id) {
+    companion object : IntEntityClass<LoginTypeDAO>(LoginTypes) {
         @JvmStatic
         fun initializeTable() {
             for (type in LoginType.values()) {

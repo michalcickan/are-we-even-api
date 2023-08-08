@@ -1,6 +1,6 @@
 package eu.plugins
 
-import LoginTypeDao
+import LoginTypeDAO
 import LoginTypes
 import eu.modules.ITransactionHandler
 import eu.tables.*
@@ -24,6 +24,6 @@ fun Application.configureDatabases() {
             Groups,
             UsersGroups,
         )
-        LoginTypeDao.initializeTable()
+        LoginTypeDAO.initializeTable()
     }
 }
