@@ -92,7 +92,7 @@ class AuthService(
                     payload.email,
                     payload["given_name"].toString(),
                     null,
-                    payload["family_name"].toString(),
+                    payload["family_name"]?.toString(),
                 ),
             )
 

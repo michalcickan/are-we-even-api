@@ -3,17 +3,16 @@ package eu.routes
 import LoginType
 import com.google.api.client.http.javanet.NetHttpTransport
 import com.google.api.client.json.gson.GsonFactory
+import eu.exceptions.ValidationException
 import eu.services.IAuthService
 import eu.services.IJWTService
 import eu.utils.CustomHeaderField
 import eu.utils.getHeader
 import handleRequestWithExceptions
 import io.github.cdimascio.dotenv.dotenv
-import io.ktor.http.*
 import io.ktor.server.application.*
 import io.ktor.server.auth.*
 import io.ktor.server.request.*
-import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import org.koin.ktor.ext.inject
 
@@ -26,14 +25,9 @@ fun Route.authRoutes() {
     val authService by inject<IAuthService>()
     val jwtService by inject<IJWTService>()
 
-    this@authRoutes.intercept(ApplicationCallPipeline.Plugins) {
-        if (call.getHeader(CustomHeaderField.DeviceId) == null) {
-            call.respond(HttpStatusCode.Unauthorized)
-        }
-    }
-
     post("/login/{loginType}") {
         handleRequestWithExceptions(call) {
+            call.checkForDeviceId()
             val loginType = call.parameters["loginType"]
             val parsedLoginType = if (loginType != null) {
                 LoginType.valueOf(loginType.uppercase()) // Parse the string to the enum
@@ -52,6 +46,7 @@ fun Route.authRoutes() {
     }
 
     post("/login") {
+        call.checkForDeviceId()
         handleRequestWithExceptions(call) {
             authService.loginWith(
                 call.receive(),
@@ -62,12 +57,14 @@ fun Route.authRoutes() {
     }
 
     post("/register") {
+        call.checkForDeviceId()
         handleRequestWithExceptions(call) {
             authService.registerWith(call.receive(), call.deviceId())
         }
     }
 
     post("/token") {
+        call.checkForDeviceId()
         handleRequestWithExceptions(call) {
             authService.recreateAccessToken(call.receive(), call.deviceId())
         }
@@ -76,6 +73,7 @@ fun Route.authRoutes() {
     authenticate("auth-jwt") {
         post("/logout") {
             handleRequestWithExceptions(call) {
+                call.checkForDeviceId()
                 authService.logout(
                     jwtService.getUserIdFromPrincipalPayload(
                         call.principal(),
@@ -89,4 +87,10 @@ fun Route.authRoutes() {
 
 private fun ApplicationCall.deviceId(): String {
     return getHeader(CustomHeaderField.DeviceId) ?: ""
+}
+
+private fun ApplicationCall.checkForDeviceId() {
+    if (getHeader(CustomHeaderField.DeviceId) == null) {
+        throw ValidationException.DeviceIdMissing
+    }
 }
