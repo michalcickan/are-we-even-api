@@ -16,6 +16,9 @@ interface IGroupService {
     suspend fun inviteUserToGroup(groupId: Int, userId: Long)
     suspend fun getGroupsForUser(userId: Long): List<Group>
     suspend fun deleteGroup(groupId: Int)
+
+    suspend fun getDefaultGroup(userId: Long): Group
+    suspend fun setDefaultGroup(groupId: Int, userId: Long)
 }
 
 class GroupService(
@@ -24,15 +27,9 @@ class GroupService(
 ) : IGroupService {
     override suspend fun createGroup(params: CreateGroupParameters, creatorUserId: Long): Group {
         return transactionHandler.perform {
-            val group = GroupDAO.new {
-                this.name = params.name
-                this.createdBy = UserDAO[creatorUserId]
-            }
-            UserGroupDAO.new {
-                this.group = group
-                this.user = UserDAO[creatorUserId]
-            }
-            group.toGroup()
+            val group = createDAOGroup(params, creatorUserId)
+
+            group.toGroup(false)
         }
     }
 
@@ -42,10 +39,7 @@ class GroupService(
         if (accepted) {
             this.checkIfUserInGroup(groupId, userId)
             transactionHandler.perform {
-                UserGroupDAO.new {
-                    this.group = GroupDAO[groupId]
-                    this.user = UserDAO[userId]
-                }
+                assignGroupToUser(GroupDAO[groupId], userId, false)
             }
         }
     }
@@ -64,6 +58,7 @@ class GroupService(
                     Group(
                         it[Groups.id].value,
                         it[Groups.name],
+                        it[UsersGroups.isDefault],
                     )
                 }
         }
@@ -79,6 +74,40 @@ class GroupService(
         }
     }
 
+    override suspend fun getDefaultGroup(userId: Long): Group {
+        return transactionHandler.perform {
+            val userGroups = UserGroupDAO
+                .find { UsersGroups.userId eq userId }
+            if (userGroups.empty()) {
+                val group = createDAOGroup(CreateGroupParameters(name = "Main group"), userId)
+                assignGroupToUser(group, userId, true)
+                group.toGroup(true)
+            } else {
+                val defaultUserGroup: UserGroupDAO? = userGroups
+                    .firstNotNullOfOrNull { if (it.isDefault) it else null }
+                if (defaultUserGroup != null) {
+                    defaultUserGroup.group
+                } else {
+                    val firstUserGroup = userGroups.first()
+                    firstUserGroup.isDefault = true
+                    firstUserGroup.group
+                }.toGroup(true)
+            }
+        }
+    }
+
+    override suspend fun setDefaultGroup(groupId: Int, userId: Long) {
+        return transactionHandler.perform {
+            UserGroupDAO
+                .find {
+                    (UsersGroups.userId eq userId) and (UsersGroups.isDefault eq true)
+                }
+                .forEach {
+                    it.isDefault = it.group.id.value == groupId
+                }
+        }
+    }
+
     private suspend fun checkIfUserInGroup(groupId: Int, userId: Long) {
         return transactionHandler.perform {
             if (!UserGroupDAO.find {
@@ -87,6 +116,21 @@ class GroupService(
             ) {
                 throw APIException.UserAlreadyInGroup
             }
+        }
+    }
+
+    private fun createDAOGroup(params: CreateGroupParameters, creatorUserId: Long): GroupDAO {
+        return GroupDAO.new {
+            this.name = params.name
+            this.createdBy = UserDAO[creatorUserId]
+        }
+    }
+
+    private fun assignGroupToUser(group: GroupDAO, creatorUserId: Long, isDefault: Boolean): UserGroupDAO {
+        return UserGroupDAO.new {
+            this.group = group
+            this.user = UserDAO[creatorUserId]
+            this.isDefault = isDefault
         }
     }
 }
