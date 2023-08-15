@@ -28,4 +28,9 @@ sealed class ValidationException(val statusCode: HttpStatusCode, override val me
         HttpStatusCode.Unauthorized,
         "",
     )
+
+    data class CannotBeEmpty(val paramName: String) : ValidationException(
+        HttpStatusCode.UnprocessableEntity,
+        "Cannot be empty: $paramName",
+    )
 }

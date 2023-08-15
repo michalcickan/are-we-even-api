@@ -84,6 +84,12 @@ fun Route.groupRoutes() {
             }
         }
 
+        delete("groups/{groupId}") {
+            handleRequestWithExceptions(call) {
+                groupsService.deleteGroup(call.parameters["groupId"]!!.toInt())
+            }
+        }
+
         post("groups/{groupId}/users/{userId}") {
             handleRequestWithExceptions(call) {
                 groupsService.inviteUserToGroup(

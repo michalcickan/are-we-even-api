@@ -15,6 +15,7 @@ interface IGroupService {
 
     suspend fun inviteUserToGroup(groupId: Int, userId: Long)
     suspend fun getGroupsForUser(userId: Long): List<Group>
+    suspend fun deleteGroup(groupId: Int)
 }
 
 class GroupService(
@@ -65,6 +66,16 @@ class GroupService(
                         it[Groups.name],
                     )
                 }
+        }
+    }
+
+    override suspend fun deleteGroup(groupId: Int) {
+        return transactionHandler.perform {
+            val group = GroupDAO[groupId]
+            UserGroupDAO
+                .find { UsersGroups.groupId eq group.id }
+                .forEach { it.delete() }
+            group.delete()
         }
     }
 
