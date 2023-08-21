@@ -4,6 +4,7 @@ import eu.exceptions.APIException
 import eu.models.parameters.CreateGroupParameters
 import eu.models.responses.Group
 import eu.models.responses.toGroup
+import eu.models.responses.users.toSimpleUser
 import eu.modules.ITransactionHandler
 import eu.tables.*
 import org.jetbrains.exposed.sql.and
@@ -16,6 +17,7 @@ interface IGroupService {
     suspend fun inviteUserToGroup(groupId: Int, userId: Long)
     suspend fun getGroupsForUser(userId: Long): List<Group>
     suspend fun deleteGroup(groupId: Int)
+    suspend fun getGroupDetail(groupId: Int): Group
 
     suspend fun getDefaultGroup(userId: Long): Group
     suspend fun setDefaultGroup(groupId: Int, userId: Long)
@@ -28,7 +30,7 @@ class GroupService(
     override suspend fun createGroup(params: CreateGroupParameters, creatorUserId: Long): Group {
         return transactionHandler.perform {
             val group = createDAOGroup(params, creatorUserId)
-
+            assignGroupToUser(group, creatorUserId, false)
             group.toGroup(false)
         }
     }
@@ -58,7 +60,7 @@ class GroupService(
                     Group(
                         it[Groups.id].value,
                         it[Groups.name],
-                        it[UsersGroups.isDefault],
+                        it[UsersGroups.usersWorkingGroup],
                     )
                 }
         }
@@ -74,6 +76,16 @@ class GroupService(
         }
     }
 
+    override suspend fun getGroupDetail(groupId: Int): Group {
+        return transactionHandler.perform {
+            val users = UsersGroups
+                .innerJoin(Users)
+                .select { UsersGroups.groupId eq groupId }
+                .map { it.toSimpleUser() }
+            GroupDAO[groupId].toGroup(users = users)
+        }
+    }
+
     override suspend fun getDefaultGroup(userId: Long): Group {
         return transactionHandler.perform {
             val userGroups = UserGroupDAO
@@ -84,12 +96,12 @@ class GroupService(
                 group.toGroup(true)
             } else {
                 val defaultUserGroup: UserGroupDAO? = userGroups
-                    .firstNotNullOfOrNull { if (it.isDefault) it else null }
+                    .firstNotNullOfOrNull { if (it.usersWorkingGroup) it else null }
                 if (defaultUserGroup != null) {
                     defaultUserGroup.group
                 } else {
                     val firstUserGroup = userGroups.first()
-                    firstUserGroup.isDefault = true
+                    firstUserGroup.usersWorkingGroup = true
                     firstUserGroup.group
                 }.toGroup(true)
             }
@@ -100,10 +112,10 @@ class GroupService(
         return transactionHandler.perform {
             UserGroupDAO
                 .find {
-                    (UsersGroups.userId eq userId) and (UsersGroups.isDefault eq true)
+                    (UsersGroups.userId eq userId)
                 }
                 .forEach {
-                    it.isDefault = it.group.id.value == groupId
+                    it.usersWorkingGroup = it.group.id.value == groupId
                 }
         }
     }
@@ -130,7 +142,7 @@ class GroupService(
         return UserGroupDAO.new {
             this.group = group
             this.user = UserDAO[creatorUserId]
-            this.isDefault = isDefault
+            this.usersWorkingGroup = isDefault
         }
     }
 }

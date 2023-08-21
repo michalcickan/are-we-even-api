@@ -90,6 +90,12 @@ fun Route.groupRoutes() {
             }
         }
 
+        get("groups/{groupId}") {
+            handleRequestWithExceptions(call) {
+                groupsService.getGroupDetail(call.parameters["groupId"]!!.toInt())
+            }
+        }
+
         post("groups/{groupId}/invite-user/{inviteeId}") {
             handleRequestWithExceptions(call) {
                 groupsService.inviteUserToGroup(
@@ -103,7 +109,7 @@ fun Route.groupRoutes() {
             handleRequestWithExceptions(call) {
                 groupsService.setDefaultGroup(
                     call.parameters["groupId"]!!.toInt(),
-                    call.parameters["userId"]!!.toLong(),
+                    jwtService.getUserIdFromPrincipalPayload(call.principal()),
                 )
             }
         }

@@ -42,7 +42,7 @@ interface IJWTService {
 
     fun buildVerifierForToken(): JWTVerifier
 
-    fun getJWTPrincipal(payload: Payload): JWTPrincipal?
+    suspend fun getJWTPrincipal(payload: Payload): JWTPrincipal?
     fun getUserIdFromPrincipalPayload(principal: JWTPrincipal?): Long
 }
 
@@ -62,11 +62,17 @@ class JWTService(
             .build()
     }
 
-    override fun getJWTPrincipal(payload: Payload): JWTPrincipal? {
-        if (payload?.getClaim(claim)?.asLong() != null) {
-            return JWTPrincipal(payload)
+    override suspend fun getJWTPrincipal(payload: Payload): JWTPrincipal? {
+        val userId = payload?.getClaim(claim)?.asLong() ?: return null
+
+        return transactionHandler.perform {
+            // in case of invalidation of all access tokens
+            if (AccessTokenDAO.find { AccessTokens.userId eq userId }.empty()) {
+                null
+            } else {
+                JWTPrincipal(payload)
+            }
         }
-        return null
     }
 
     override fun getUserIdFromPrincipalPayload(principal: JWTPrincipal?): Long {

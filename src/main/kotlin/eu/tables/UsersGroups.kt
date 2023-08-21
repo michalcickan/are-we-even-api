@@ -8,7 +8,7 @@ import org.jetbrains.exposed.dao.id.IntIdTable
 object UsersGroups : IntIdTable() {
     val userId = reference("userId", Users)
     val groupId = reference("groupId", Groups)
-    val isDefault = bool("isDefault")
+    val usersWorkingGroup = bool("usersWorkingGroup")
 }
 
 class UserGroupDAO(id: EntityID<Int>) : IntEntity(id) {
@@ -16,5 +16,5 @@ class UserGroupDAO(id: EntityID<Int>) : IntEntity(id) {
 
     var group by GroupDAO referencedOn UsersGroups.groupId
     var user by UserDAO referencedOn UsersGroups.userId
-    var isDefault by UsersGroups.isDefault
+    var usersWorkingGroup by UsersGroups.usersWorkingGroup
 }
