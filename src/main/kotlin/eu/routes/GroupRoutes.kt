@@ -96,7 +96,7 @@ fun Route.groupRoutes() {
             }
         }
 
-        post("groups/{groupId}/invite-user/{inviteeId}") {
+        post("groups/{groupId}/inviteUser/{inviteeId}") {
             handleRequestWithExceptions(call) {
                 groupsService.inviteUserToGroup(
                     call.parameters["groupId"]!!.toInt(),

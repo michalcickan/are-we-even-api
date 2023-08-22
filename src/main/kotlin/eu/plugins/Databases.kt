@@ -23,6 +23,7 @@ fun Application.configureDatabases() {
             RefreshTokens,
             Groups,
             UsersGroups,
+            Invitations,
         )
         LoginTypeDAO.initializeTable()
     }
