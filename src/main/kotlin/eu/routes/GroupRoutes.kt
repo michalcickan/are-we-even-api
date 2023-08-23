@@ -28,7 +28,7 @@ fun Route.groupRoutes() {
             }
         }
 
-        post("groups/invitations") {
+        get("groups/invitations") {
             handleRequestWithExceptions(call) {
                 invitationService.getInvitations(
                     jwtService.getUserIdFromPrincipalPayload(call.principal()),
@@ -40,13 +40,13 @@ fun Route.groupRoutes() {
         post("groups/invitations/{invitationId}/{resolution}") {
             handleRequestWithExceptions(call) {
                 val resolution = call.parameters["resolution"]
-                if (resolution != "accept" || resolution != "decline") {
+                if (resolution != "accept" && resolution != "decline") {
                     throw APIException.NotFound
                 }
                 groupsService.resolveInvitationToGroup(
                     jwtService.getUserIdFromPrincipalPayload(call.principal()),
                     call.parameters["invitationId"]!!.toInt(),
-                    resolution == "accepted",
+                    resolution == "accept",
                 )
             }
         }
