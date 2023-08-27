@@ -1,9 +1,12 @@
 package eu.services
 
+import eu.models.parameters.AllExpensesQueryParameters
 import eu.models.parameters.expense.AddExpenseParameters
 import eu.models.parameters.expense.ExpensePayerParameters
 import eu.models.parameters.expense.UpdateExpenseParameters
 import eu.models.responses.Expense
+import eu.models.responses.PagedData
+import eu.models.responses.PagingMeta
 import eu.models.responses.toExpense
 import eu.modules.ITransactionHandler
 import eu.tables.*
@@ -13,7 +16,7 @@ import org.jetbrains.exposed.sql.select
 
 interface IExpenseService {
     suspend fun getExpense(id: Int): Expense
-    suspend fun getAllExpenses(groupId: Int): List<Expense>
+    suspend fun getAllExpenses(groupId: Int, queryParameters: AllExpensesQueryParameters): PagedData<Expense>
     suspend fun addExpense(params: AddExpenseParameters, groupId: Int): Expense
     suspend fun updateExpense(
         params: UpdateExpenseParameters,
@@ -31,11 +34,27 @@ class ExpenseService(
         }
     }
 
-    override suspend fun getAllExpenses(groupId: Int): List<Expense> {
+    override suspend fun getAllExpenses(
+        groupId: Int,
+        queryParameters: AllExpensesQueryParameters,
+    ): PagedData<Expense> {
         return transactionHandler
             .perform {
-                ExpenseDAO.find { Expenses.groupId eq groupId }
-                    .map { it.toExpense(null) }
+                val expenses = ExpenseDAO.find { Expenses.groupId eq groupId }
+                val offset = queryParameters.offset ?: 0
+                val expenseModels = if (queryParameters.limit != null || offset > 0) {
+                    expenses.limit(
+                        queryParameters.limit ?: expenses.count().toInt(),
+                        offset,
+                    )
+                } else {
+                    expenses
+                }.map { it.toExpense(null) }
+
+                PagedData(
+                    expenseModels,
+                    PagingMeta(expenses.count(), offset),
+                )
             }
     }
 

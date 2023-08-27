@@ -6,6 +6,8 @@ import eu.models.parameters.UpdateUserParameters
 import eu.models.parameters.UserFilterColumn
 import eu.models.parameters.UserSearchQueryParameters
 import eu.models.responses.Address
+import eu.models.responses.PagedData
+import eu.models.responses.PagingMeta
 import eu.models.responses.toAddress
 import eu.models.responses.users.User
 import eu.models.responses.users.toUser
@@ -41,7 +43,7 @@ interface IUserService {
 
     suspend fun addAddress(userId: Long, parameters: CreateUserAddressParameters): Address
 
-    suspend fun searchUsers(parameters: UserSearchQueryParameters): List<User>
+    suspend fun searchUsers(parameters: UserSearchQueryParameters): PagedData<User>
 }
 
 class UserService(
@@ -131,7 +133,7 @@ class UserService(
         }
     }
 
-    override suspend fun searchUsers(parameters: UserSearchQueryParameters): List<User> {
+    override suspend fun searchUsers(parameters: UserSearchQueryParameters): PagedData<User> {
         val lowerQuery = "%${parameters.query.lowercase(Locale.getDefault())}%"
         return transactionHandler.perform {
             var results = if (parameters.filterCol != null) {
@@ -142,7 +144,14 @@ class UserService(
             parameters.limit?.let {
                 results = results.limit(it, parameters.offset ?: 0)
             }
-            results.map { it.toUser() }
+            val users = results.map { it.toUser() }
+            PagedData(
+                users,
+                PagingMeta(
+                    results.count(),
+                    parameters.offset ?: 0,
+                ),
+            )
         }
     }
 

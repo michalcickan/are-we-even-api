@@ -1,6 +1,8 @@
 import eu.exceptions.APIException
 import eu.models.responses.GenericResponse
+import eu.models.responses.PagedData
 import io.ktor.http.*
+import io.ktor.http.content.*
 import io.ktor.server.application.*
 import io.ktor.server.plugins.*
 import io.ktor.server.response.*
@@ -15,11 +17,18 @@ suspend inline fun ApplicationCall.respondWithError(statusCode: HttpStatusCode, 
 
 suspend inline fun <reified T : Any> handleRequestWithExceptions(call: ApplicationCall, block: suspend () -> T) {
     try {
-        val result = block()
-        if (result is Unit) {
-            call.respond(HttpStatusCode.NoContent)
-        } else {
-            call.respondWithData(result)
+        when (val result = block()) {
+            is Unit -> {
+                call.respond(HttpStatusCode.NoContent)
+            }
+
+            is PagedData<*> -> {
+                call.respond(HttpStatusCode.OK, result)
+            }
+
+            else -> {
+                call.respondWithData(result)
+            }
         }
     } catch (e: APIException) {
         call.respondWithError(e.statusCode, e.message)

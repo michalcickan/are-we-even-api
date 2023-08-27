@@ -2,6 +2,7 @@ package eu.routes
 
 import eu.exceptions.APIException
 import eu.models.parameters.expense.AddExpenseParameters
+import eu.models.parameters.extractAllExpensesQueryParameters
 import eu.services.IExpenseService
 import eu.services.IGroupService
 import eu.services.IInvitationService
@@ -63,7 +64,10 @@ fun Route.groupRoutes() {
         get("groups/{groupId}/expenses") {
             handleRequestWithExceptions(call) {
                 val groupId = call.parameters["groupId"]!!.toInt()
-                expenseService.getAllExpenses(groupId)
+                expenseService.getAllExpenses(
+                    groupId,
+                    call.extractAllExpensesQueryParameters(),
+                )
             }
         }
 
