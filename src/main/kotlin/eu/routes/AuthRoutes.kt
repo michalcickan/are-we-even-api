@@ -8,13 +8,13 @@ import eu.services.IAuthService
 import eu.services.IJWTService
 import eu.utils.CustomHeaderField
 import eu.utils.getHeader
-import handleRequestWithExceptions
 import io.github.cdimascio.dotenv.dotenv
 import io.ktor.server.application.*
 import io.ktor.server.auth.*
 import io.ktor.server.request.*
 import io.ktor.server.routing.*
 import org.koin.ktor.ext.inject
+import responseWithGenericData
 
 val env = dotenv()
 
@@ -26,7 +26,7 @@ fun Route.authRoutes() {
     val jwtService by inject<IJWTService>()
 
     post("/login/{loginType}") {
-        handleRequestWithExceptions(call) {
+        responseWithGenericData(call) {
             call.checkForDeviceId()
             val loginType = call.parameters["loginType"]
             val parsedLoginType = if (loginType != null) {
@@ -47,7 +47,7 @@ fun Route.authRoutes() {
 
     post("/login") {
         call.checkForDeviceId()
-        handleRequestWithExceptions(call) {
+        responseWithGenericData(call) {
             authService.loginWith(
                 call.receive(),
                 LoginType.EMAIL,
@@ -58,21 +58,21 @@ fun Route.authRoutes() {
 
     post("/register") {
         call.checkForDeviceId()
-        handleRequestWithExceptions(call) {
+        responseWithGenericData(call) {
             authService.registerWith(call.receive(), call.deviceId())
         }
     }
 
     post("/token") {
         call.checkForDeviceId()
-        handleRequestWithExceptions(call) {
+        responseWithGenericData(call) {
             authService.recreateAccessToken(call.receive(), call.deviceId())
         }
     }
 
     authenticate("auth-jwt") {
         post("/logout") {
-            handleRequestWithExceptions(call) {
+            responseWithGenericData(call) {
                 call.checkForDeviceId()
                 authService.logout(
                     jwtService.getUserIdFromPrincipalPayload(

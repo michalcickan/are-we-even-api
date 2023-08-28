@@ -4,6 +4,7 @@ import eu.exceptions.APIException
 import eu.models.parameters.CreateGroupParameters
 import eu.models.responses.Group
 import eu.models.responses.toGroup
+import eu.models.responses.users.User
 import eu.models.responses.users.toSimpleUser
 import eu.modules.ITransactionHandler
 import eu.tables.*
@@ -21,6 +22,8 @@ interface IGroupService {
 
     suspend fun getDefaultGroup(userId: Long): Group
     suspend fun setDefaultGroup(groupId: Int, userId: Long)
+
+    suspend fun getMembers(groupId: Int): List<User>
 }
 
 class GroupService(
@@ -116,6 +119,16 @@ class GroupService(
                 }
                 .forEach {
                     it.usersWorkingGroup = it.group.id.value == groupId
+                }
+        }
+    }
+
+    override suspend fun getMembers(groupId: Int): List<User> {
+        return transactionHandler.perform {
+            UsersGroups.innerJoin(Users)
+                .select { UsersGroups.groupId eq groupId }
+                .map {
+                    it.toSimpleUser()
                 }
         }
     }

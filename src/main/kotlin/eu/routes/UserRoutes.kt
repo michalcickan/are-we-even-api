@@ -3,12 +3,13 @@ package eu.routes
 import eu.models.parameters.extractUserSearchQueryParameters
 import eu.services.IJWTService
 import eu.services.IUserService
-import handleRequestWithExceptions
 import io.ktor.server.application.*
 import io.ktor.server.auth.*
 import io.ktor.server.request.*
 import io.ktor.server.routing.*
 import org.koin.ktor.ext.inject
+import responseWithGenericData
+import responseWithPagedData
 
 fun Route.userRoutes() {
     val userService by inject<IUserService>()
@@ -16,7 +17,7 @@ fun Route.userRoutes() {
 
     authenticate("auth-jwt") {
         put("/user") {
-            handleRequestWithExceptions(call) {
+            responseWithGenericData(call) {
                 userService.updateUser(
                     userId = call.userId(jwtService),
                     params = call.receive(),
@@ -25,13 +26,13 @@ fun Route.userRoutes() {
         }
 
         get("/user") {
-            handleRequestWithExceptions(call) {
+            responseWithGenericData(call) {
                 userService.getUser(call.userId(jwtService))
             }
         }
 
         post("user/address") {
-            handleRequestWithExceptions(call) {
+            responseWithGenericData(call) {
                 userService.addAddress(
                     call.userId(jwtService),
                     call.receive(),
@@ -40,7 +41,7 @@ fun Route.userRoutes() {
         }
 
         get("/users/search") {
-            handleRequestWithExceptions(call) {
+            responseWithPagedData(call) {
                 userService.searchUsers(
                     call.extractUserSearchQueryParameters(),
                 )

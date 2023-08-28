@@ -19,7 +19,7 @@ class HandleRequestTest {
         coEvery { mockCall.respond(capture(slot)) } answers {
             assertEquals(slot.captured, HttpStatusCode.NoContent)
         }
-        handleRequestWithExceptions(mockCall) {}
+        responseWithGenericData(mockCall) {}
     }
 
     @Test
@@ -38,7 +38,7 @@ class HandleRequestTest {
             assertEquals(statusSlot.captured, HttpStatusCode.OK)
             assertEquals(userSlot.captured.data, user)
         }
-        handleRequestWithExceptions(mockCall) {
+        responseWithGenericData(mockCall) {
             user
         }
     }
