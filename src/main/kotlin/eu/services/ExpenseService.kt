@@ -1,6 +1,7 @@
 package eu.services
 
 import eu.models.parameters.AllExpensesQueryParameters
+import eu.models.parameters.Sort
 import eu.models.parameters.expense.AddExpenseParameters
 import eu.models.parameters.expense.ExpensePayerParameters
 import eu.models.parameters.expense.UpdateExpenseParameters
@@ -11,6 +12,7 @@ import eu.models.responses.toExpense
 import eu.modules.ITransactionHandler
 import eu.tables.*
 import eu.utils.ExpenseUtils
+import org.jetbrains.exposed.sql.SortOrder
 import org.jetbrains.exposed.sql.and
 import org.jetbrains.exposed.sql.select
 
@@ -40,15 +42,18 @@ class ExpenseService(
     ): PagedData<Expense> {
         return transactionHandler
             .perform {
-                val expenses = ExpenseDAO.find { Expenses.groupId eq groupId }
+                val sort = queryParameters.sort ?: Sort.DESC
+                val expenses = ExpenseDAO
+                    .find { Expenses.groupId eq groupId }
+                val orderedExpensesQuery = when (sort) {
+                    Sort.ASC -> expenses.orderBy(Expenses.createdAt to SortOrder.ASC)
+                    Sort.DESC -> expenses.orderBy(Expenses.createdAt to SortOrder.DESC)
+                }
                 val offset = queryParameters.offset ?: 0
                 val expenseModels = if (queryParameters.limit != null || offset > 0) {
-                    expenses.limit(
-                        queryParameters.limit ?: expenses.count().toInt(),
-                        offset,
-                    )
+                    orderedExpensesQuery.limit(queryParameters.limit!!, offset)
                 } else {
-                    expenses
+                    orderedExpensesQuery
                 }.map { it.toExpense(null) }
 
                 PagedData(
