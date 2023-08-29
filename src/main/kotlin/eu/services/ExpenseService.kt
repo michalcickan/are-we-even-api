@@ -77,7 +77,7 @@ class ExpenseService(
             from database a data including current transaction UserExpense data, sometimes not, so the calculation
             was not reliable.
              */
-            fillOrUpdateOweeTable(params.users, groupId)
+            fillOrUpdateDebtorTable(params.users, groupId)
             fillUserExpenseTable(params.users, expense)
             expense.getUsersAndMakeExpense()
         }
@@ -129,7 +129,7 @@ class ExpenseService(
         }
     }
 
-    private fun fillOrUpdateOweeTable(users: List<ExpensePayerParameters>, groupId: Int) {
+    private fun fillOrUpdateDebtorTable(users: List<ExpensePayerParameters>, groupId: Int) {
         val paidHigherThanShould = mutableListOf<ExpensePayerParameters>()
         val paidLesserThanShould = mutableListOf<ExpensePayerParameters>()
         for (user in users) {
@@ -146,11 +146,11 @@ class ExpenseService(
                 // neutral. They are useless in this function
             }
         }
-        OweeDAO
-            .find { Owees.groupId eq groupId }
+        DebtorDAO
+            .find { Debtors.groupId eq groupId }
             .forEach { it.delete() }
-        paidLesserThanShould.forEach { owee ->
-            var diff = owee.dueAmount - owee.paidAmount
+        paidLesserThanShould.forEach { debtor ->
+            var diff = debtor.dueAmount - debtor.paidAmount
             var amountToWrite = 0f
             do {
                 var userToUseToEven = paidHigherThanShould[0]
@@ -164,10 +164,10 @@ class ExpenseService(
                     // we depleted users all resources, so the user is on the same level with due amount, and we cannot use it anymore
                     paidHigherThanShould.remove(userToUseToEven)
                 }
-                OweeDAO.new {
+                DebtorDAO.new {
                     this.groupId = GroupDAO[groupId]
-                    this.payerUser = UserDAO[userToUseToEven.id]
-                    this.oweeUser = UserDAO[owee.id]
+                    this.debtor = UserDAO[userToUseToEven.id]
+                    this.creditor = UserDAO[debtor.id]
                     this.amountOwed = amountToWrite
                 }
                 diff -= amountToWrite

@@ -134,5 +134,21 @@ fun Route.groupRoutes() {
                 )
             }
         }
+
+        get("groups/expenses/{expenseId}") {
+            responseWithGenericData(call) {
+                expenseService.getExpense(
+                    call.parameters["expenseId"]!!.toInt(),
+                )
+            }
+        }
+
+        get("groups/{groupId}/debts") {
+            responseWithGenericData(call) {
+                groupsService.getDebts(
+                    call.parameters["groupId"]!!.toInt(),
+                )
+            }
+        }
     }
 }

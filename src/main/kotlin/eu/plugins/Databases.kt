@@ -15,7 +15,7 @@ fun Application.configureDatabases() {
             Users,
             Addresses,
             LoginTypes,
-            Owees,
+            Debtors,
             Expenses,
             UsersExpenses,
             AccessTokens,

@@ -16,7 +16,7 @@ class ExpenseServiceForDebtComputationTest {
 
     @Before
     fun setup() {
-        transactionHandler.createTables(arrayOf(UsersExpenses, Users, Expenses, Owees, Groups))
+        transactionHandler.createTables(arrayOf(UsersExpenses, Users, Expenses, Debtors, Groups))
         expenseService = ExpenseService(transactionHandler)
     }
 

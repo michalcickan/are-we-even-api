@@ -4,9 +4,9 @@ import eu.models.parameters.expense.AddExpenseParameters
 import eu.models.parameters.expense.ExpensePayerParameters
 import eu.models.responses.users.User
 import eu.models.responses.users.toUser
+import eu.tables.DebtorDAO
+import eu.tables.Debtors
 import eu.tables.GroupDAO
-import eu.tables.OweeDAO
-import eu.tables.Owees
 import eu.tables.UserDAO
 import org.jetbrains.exposed.sql.and
 
@@ -14,7 +14,7 @@ suspend fun MockTransactionHandler.getUsersOwes(count: Int, groupId: Int, users:
     val databaseUsers = mutableListOf<Float>()
     perform {
         for (index in 0 until count) {
-            databaseUsers.add(OweeDAO.getUsersOweAmount(groupId, users[index].id))
+            databaseUsers.add(DebtorDAO.getUsersOweAmount(groupId, users[index].id))
         }
     }
     return databaseUsers.toFloatArray()
@@ -42,10 +42,10 @@ fun List<User>.makeParams(paidAmounts: List<Float>, dueAmounts: List<Float>): Ad
     )
 }
 
-fun OweeDAO.Companion.getUsersOweAmount(groupId: Int, userId: Long): Float {
-    return OweeDAO
+fun DebtorDAO.Companion.getUsersOweAmount(groupId: Int, userId: Long): Float {
+    return DebtorDAO
         .find {
-            (Owees.oweeUserId eq userId) and (Owees.groupId eq groupId)
+            (Debtors.debtorId eq userId) and (Debtors.groupId eq groupId)
         }
         .fold(0f) { acc, owee -> acc + owee.amountOwed }
         .toFloat()

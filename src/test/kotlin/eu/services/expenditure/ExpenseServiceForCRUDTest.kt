@@ -1,6 +1,7 @@
 package eu.services
 
 import eu.helpers.*
+import eu.models.parameters.AllExpensesQueryParameters
 import eu.models.parameters.expense.ExpensePayerParameters
 import eu.models.parameters.expense.UpdateExpenseParameters
 import eu.models.responses.toExpense
@@ -20,7 +21,7 @@ class ExpenseServiceForCRUDTest {
 
     @Before
     fun setup() {
-        transactionHandler.createTables(arrayOf(UsersExpenses, Users, Expenses, Owees, Groups))
+        transactionHandler.createTables(arrayOf(UsersExpenses, Users, Expenses, Debtors, Groups))
         expenseService = ExpenseService(transactionHandler)
     }
 
@@ -288,7 +289,10 @@ class ExpenseServiceForCRUDTest {
             nextGroupId,
         ).id
         val expected = listOf(first, second).sorted()
-        val expenses = expenseService.getAllExpenses(groupId).map { it.id }.sorted()
+        val expenses = expenseService
+            .getAllExpenses(groupId, AllExpensesQueryParameters(0, 50, null))
+            .data.map { it.id }
+            .sorted()
         assertEquals(expected, expenses)
         assertFalse(expenses.contains(third))
     }

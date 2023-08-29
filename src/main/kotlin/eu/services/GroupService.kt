@@ -2,7 +2,9 @@ package eu.services
 
 import eu.exceptions.APIException
 import eu.models.parameters.CreateGroupParameters
+import eu.models.responses.Debt
 import eu.models.responses.Group
+import eu.models.responses.toDebt
 import eu.models.responses.toGroup
 import eu.models.responses.users.User
 import eu.models.responses.users.toSimpleUser
@@ -24,6 +26,7 @@ interface IGroupService {
     suspend fun setDefaultGroup(groupId: Int, userId: Long)
 
     suspend fun getMembers(groupId: Int): List<User>
+    suspend fun getDebts(groupId: Int): List<Debt>
 }
 
 class GroupService(
@@ -108,6 +111,13 @@ class GroupService(
                     firstUserGroup.group
                 }.toGroup(true)
             }
+        }
+    }
+
+    override suspend fun getDebts(groupId: Int): List<Debt> {
+        return transactionHandler.perform {
+            DebtorDAO.find { Debtors.groupId eq groupId }
+                .map { it.toDebt() }
         }
     }
 

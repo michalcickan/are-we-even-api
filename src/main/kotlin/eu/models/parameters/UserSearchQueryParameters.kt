@@ -4,10 +4,10 @@ import eu.exceptions.ValidationException
 import io.ktor.server.application.*
 
 class UserSearchQueryParameters(
-    val filterCol: UserFilterColumn?,
+    val filterCol: UserFilterColumn? = null,
     val query: String,
-    offset: Long?,
-    limit: Int?,
+    offset: Long? = null,
+    limit: Int? = null,
 ) : PagingParameters(offset, limit)
 
 fun ApplicationCall.extractUserSearchQueryParameters(): UserSearchQueryParameters {

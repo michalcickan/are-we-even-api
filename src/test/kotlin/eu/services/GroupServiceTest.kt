@@ -51,12 +51,14 @@ class GroupServiceTest {
                 UserGroupDAO.new {
                     this.user = UserDAO[firstUsers[0].id]
                     this.group = GroupDAO[groupId]
+                    this.usersWorkingGroup = false
                 }
             }
             secondUsers.forEach { user ->
                 UserGroupDAO.new {
                     this.user = UserDAO[user.id]
                     this.group = GroupDAO[thirdGroupId]
+                    this.usersWorkingGroup = false
                 }
             }
         }
@@ -78,12 +80,14 @@ class GroupServiceTest {
                 UserGroupDAO.new {
                     this.user = UserDAO[firstUsers[0].id]
                     this.group = GroupDAO[groupId]
+                    this.usersWorkingGroup = false
                 }
             }
             secondUsers.forEach { user ->
                 UserGroupDAO.new {
                     this.user = UserDAO[user.id]
                     this.group = GroupDAO[thirdGroupId]
+                    this.usersWorkingGroup = false
                 }
             }
         }
@@ -141,7 +145,7 @@ class GroupServiceTest {
             coEvery { mockInvitationService.makeUserInvitationForGroup(any(), any()) } returns Invitation(
                 1,
                 testingUser,
-                Group(groupId, "test"),
+                Group(groupId, "test", isDefault = false),
             )
             groupService.inviteUserToGroup(groupId, testingUser.id)
 
@@ -167,7 +171,7 @@ class GroupServiceTest {
             coEvery { mockInvitationService.handleInvitation(any(), any()) } returns Invitation(
                 mockInvitationId,
                 users[0],
-                Group(groupId, "test"),
+                Group(groupId, "test", isDefault = false),
             )
             groupService.resolveInvitationToGroup(
                 testingUser,
@@ -196,7 +200,7 @@ class GroupServiceTest {
             coEvery { mockInvitationService.handleInvitation(any(), any()) } returns Invitation(
                 mockInvitationId,
                 users[0],
-                Group(2, "test"),
+                Group(2, "test", isDefault = false),
             )
             groupService.resolveInvitationToGroup(
                 testingUser,
@@ -216,7 +220,7 @@ class GroupServiceTest {
             coEvery { mockInvitationService.handleInvitation(any(), any()) } returns Invitation(
                 2,
                 users[0],
-                Group(groupId, "test"),
+                Group(groupId, "test", isDefault = false),
             )
             groupService.resolveInvitationToGroup(
                 testingUser,

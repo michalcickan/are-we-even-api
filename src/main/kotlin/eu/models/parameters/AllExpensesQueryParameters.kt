@@ -5,7 +5,7 @@ import io.ktor.server.application.*
 class AllExpensesQueryParameters(
     offset: Long?,
     limit: Int?,
-    val sort: Sort?,
+    val sort: Sort? = null,
 ) : PagingParameters(offset, limit)
 
 fun ApplicationCall.extractAllExpensesQueryParameters(): AllExpensesQueryParameters {

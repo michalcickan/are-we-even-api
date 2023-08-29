@@ -3,6 +3,7 @@ package eu.services
 import eu.exceptions.APIException
 import eu.helpers.MockTransactionHandler
 import eu.models.parameters.UpdateUserParameters
+import eu.models.parameters.UserSearchQueryParameters
 import eu.models.responses.users.toUser
 import eu.tables.Addresses
 import eu.tables.RefreshTokens
@@ -118,7 +119,7 @@ class UserSeviceTest {
                 }
             }
         }
-        val result = userService.searchUsers("some@email", null)
+        val result = userService.searchUsers(UserSearchQueryParameters(query = "some@email")).data
             .map { it.email }
             .toSet()
         val expected = setOf("some@email.com", "some@email2.com")
@@ -137,7 +138,7 @@ class UserSeviceTest {
                 }
             }
         }
-        val result = userService.searchUsers("Some@email", null)
+        val result = userService.searchUsers(UserSearchQueryParameters(query = "Some@email")).data
             .map { it.email }
             .toSet()
         val expected = setOf("some@email.com", "some@email2.com")
@@ -157,7 +158,7 @@ class UserSeviceTest {
                     }
                 }
             }
-            val result = userService.searchUsers("some@email", null)
+            val result = userService.searchUsers(UserSearchQueryParameters(query = "some@email")).data
                 .map { it.email }
                 .toSet()
             val expected = setOf("some@email.com", "Some@email2.com")
@@ -177,7 +178,7 @@ class UserSeviceTest {
                     }
                 }
             }
-            val result = userService.searchUsers("michal", null)
+            val result = userService.searchUsers(UserSearchQueryParameters(query = "michal")).data
                 .map { it.email }
                 .toSet()
             val expected = setOf("some@email.com")
@@ -197,7 +198,7 @@ class UserSeviceTest {
                     }
                 }
             }
-            val result = userService.searchUsers("michal", null)
+            val result = userService.searchUsers(UserSearchQueryParameters(query = "michal")).data
                 .map { it.email }
                 .toSet()
             val expected = setOf("some@email.com")
@@ -219,7 +220,7 @@ class UserSeviceTest {
                     }
                 }
             }
-            val result = userService.searchUsers("michal", null)
+            val result = userService.searchUsers(UserSearchQueryParameters(query = "michal")).data
                 .map { it.email }
             val expected = listOf("some@email.com")
             assertContentEquals(expected, result)
@@ -240,7 +241,7 @@ class UserSeviceTest {
                     }
                 }
             }
-            val result = userService.searchUsers("antonin", null)
+            val result = userService.searchUsers(UserSearchQueryParameters(query = "antonin")).data
                 .map { it.email }
             assertContentEquals(emptyList(), result)
         }
