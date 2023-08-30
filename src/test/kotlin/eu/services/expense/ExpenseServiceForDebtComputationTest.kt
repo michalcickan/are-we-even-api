@@ -231,4 +231,32 @@ class ExpenseServiceForDebtComputationTest {
                 databaseValues,
             )
         }
+
+    @Test
+    fun `should correctly compute debt with decimal values`() =
+        runBlocking {
+            // 3.
+            val users = transactionHandler.fillUsers(2)
+            val testDueData = listOf(
+                listOf(3f, 5f),
+                listOf(4.5f, 2f),
+            )
+            val testPaidData = listOf(
+                listOf(6f, 2f),
+                listOf(2f, 4.5f),
+            )
+            var groupId = transactionHandler.makeGroupAndGetId(users[0].id)
+            testDueData.forEachIndexed { index, due ->
+                expenseService.addExpense(
+                    users.makeParams(testPaidData[index], due),
+                    groupId,
+                )
+            }
+            val expected = arrayOf(0f, 0.5f).toFloatArray()
+            val databaseValues = transactionHandler.getUsersOwes(users.size, groupId, users)
+            assertContentEquals(
+                expected,
+                databaseValues,
+            )
+        }
 }
