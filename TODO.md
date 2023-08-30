@@ -1,0 +1,3 @@
+- Apple login
+- Poll on third-party services access tokens to check if they are still valid
+- Connect to Firebase and send push notifications on certain events
