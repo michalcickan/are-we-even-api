@@ -195,4 +195,40 @@ class ExpenseServiceForDebtComputationTest {
                 databaseValues,
             )
         }
+
+    @Test
+    fun `should correctly compute debt for multiple expenses when only two users`() =
+        runBlocking {
+            // 3.
+            val users = transactionHandler.fillUsers(2)
+            val testDueData = listOf(
+                listOf(3f, 5f),
+                listOf(4f, 2f),
+                listOf(5f, 3f),
+                listOf(11f, 22f),
+                listOf(2f, 3f),
+                listOf(4f, 3f),
+            )
+            val testPaidData = listOf(
+                listOf(6f, 2f),
+                listOf(2f, 4f),
+                listOf(3f, 5f),
+                listOf(22f, 11f),
+                listOf(3f, 2f),
+                listOf(3f, 4f),
+            )
+            var groupId = transactionHandler.makeGroupAndGetId(users[0].id)
+            testDueData.forEachIndexed { index, due ->
+                expenseService.addExpense(
+                    users.makeParams(testPaidData[index], due),
+                    groupId,
+                )
+            }
+            val expected = arrayOf(0f, 10f).toFloatArray()
+            val databaseValues = transactionHandler.getUsersOwes(users.size, groupId, users)
+            assertContentEquals(
+                expected,
+                databaseValues,
+            )
+        }
 }

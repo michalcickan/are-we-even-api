@@ -130,44 +130,31 @@ class ExpenseService(
     }
 
     private fun fillOrUpdateDebtorTable(users: List<ExpensePayerParameters>, groupId: Int) {
-        val paidHigherThanShould = mutableListOf<ExpensePayerParameters>()
-        val paidLesserThanShould = mutableListOf<ExpensePayerParameters>()
-        for (user in users) {
-            val priorExpenses = getAllUserExpensesWithGroupId(groupId, user.id)
-            val newUser = user.copy(
-                paidAmount = user.paidAmount + priorExpenses.paidAmount,
-                dueAmount = user.dueAmount + priorExpenses.dueAmount,
-            )
-            if (newUser.paidAmount > newUser.dueAmount) {
-                paidHigherThanShould.add(newUser)
-            } else if (newUser.paidAmount < newUser.dueAmount) {
-                paidLesserThanShould.add(newUser)
-            } else {
-                // neutral. They are useless in this function
-            }
-        }
-        DebtorDAO
-            .find { Debtors.groupId eq groupId }
-            .forEach { it.delete() }
-        paidLesserThanShould.forEach { debtor ->
+        val (higherPayers, lesserPayers) = categorizeUsersByPayment(users, groupId)
+        val remainingHigherPayers = higherPayers.toMutableList()
+
+        clearExistingDebtors(groupId)
+
+        lesserPayers.forEach { debtor ->
             var diff = debtor.dueAmount - debtor.paidAmount
+            if (diff == 0f) return@forEach
             var amountToWrite = 0f
             do {
-                var userToUseToEven = paidHigherThanShould[0]
+                var userToUseToEven = remainingHigherPayers[0]
                 val higherDiff = userToUseToEven.paidAmount - userToUseToEven.dueAmount
                 if (higherDiff >= diff) {
                     amountToWrite = diff
-                    val index = paidHigherThanShould.indexOf(userToUseToEven)
-                    paidHigherThanShould[index] = userToUseToEven.copy(paidAmount = userToUseToEven.paidAmount - diff)
+                    val index = remainingHigherPayers.indexOf(userToUseToEven)
+                    remainingHigherPayers[index] = userToUseToEven.copy(paidAmount = userToUseToEven.paidAmount - diff)
                 } else {
                     amountToWrite = diff - higherDiff
                     // we depleted users all resources, so the user is on the same level with due amount, and we cannot use it anymore
-                    paidHigherThanShould.remove(userToUseToEven)
+                    remainingHigherPayers.remove(userToUseToEven)
                 }
                 DebtorDAO.new {
                     this.groupId = GroupDAO[groupId]
-                    this.debtor = UserDAO[userToUseToEven.id]
-                    this.creditor = UserDAO[debtor.id]
+                    this.debtor = UserDAO[debtor.id]
+                    this.creditor = UserDAO[userToUseToEven.id]
                     this.amountOwed = amountToWrite
                 }
                 diff -= amountToWrite
@@ -175,17 +162,42 @@ class ExpenseService(
         }
     }
 
+    private fun clearExistingDebtors(groupId: Int) {
+        DebtorDAO.find { Debtors.groupId eq groupId }.forEach { it.delete() }
+    }
+
+    private fun categorizeUsersByPayment(
+        users: List<ExpensePayerParameters>,
+        groupId: Int,
+    ): Pair<List<ExpensePayerParameters>, List<ExpensePayerParameters>> {
+        return users
+            .map {
+                val priorExpenses = getAllUserExpensesWithGroupId(groupId, it.id)
+                it.copy(
+                    paidAmount = it.paidAmount + priorExpenses.paidAmount,
+                    dueAmount = it.dueAmount + priorExpenses.dueAmount,
+                )
+            }
+            .partition { user ->
+                user.paidAmount > user.dueAmount
+            }
+    }
+
     private fun getAllUserExpensesWithGroupId(groupId: Int, userId: Long): _UserExpense {
         // Join the UserExpenses and Expenses tables based on the group ID
         try {
-            val expense = (UsersExpenses innerJoin Expenses)
-                .select { (Expenses.groupId eq groupId) and (UsersExpenses.userId eq userId) }
-                .first()
+            val userExpenses = (UsersExpenses innerJoin Expenses)
+                .slice(UsersExpenses.paidAmount, UsersExpenses.dueAmount)
+                .select {
+                    (Expenses.groupId eq groupId) and (UsersExpenses.userId eq userId)
+                }
+                .map { _UserExpense(it[UsersExpenses.paidAmount], it[UsersExpenses.dueAmount]) }
 
-            return _UserExpense(
-                expense[UsersExpenses.paidAmount],
-                expense[UsersExpenses.dueAmount],
-            )
+            val (paidAmountSum, dueAmountSum) = userExpenses.fold(0.0f to 0.0f) { acc, expense ->
+                acc.first + expense.paidAmount to acc.second + expense.dueAmount
+            }
+
+            return _UserExpense(paidAmountSum, dueAmountSum)
         } catch (e: Exception) {
             return _UserExpense(0f, 0f)
         }
