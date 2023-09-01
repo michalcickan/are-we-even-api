@@ -1,4 +1,5 @@
 import eu.exceptions.APIException
+import eu.exceptions.ValidationException
 import eu.models.responses.GenericResponse
 import eu.models.responses.PagedData
 import io.ktor.http.*
@@ -54,6 +55,8 @@ suspend inline fun <reified T : Any> ApplicationCall.handleRequestBlockWithExcep
     try {
         tryBlock()
     } catch (e: APIException) {
+        respondWithError(e.statusCode, e.message)
+    } catch (e: ValidationException) {
         respondWithError(e.statusCode, e.message)
     } catch (e: ContentTransformationException) {
         respondWithError(HttpStatusCode.BadRequest, "Invalid request body ${e.message}")

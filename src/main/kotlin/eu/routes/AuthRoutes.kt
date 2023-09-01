@@ -46,8 +46,8 @@ fun Route.authRoutes() {
     }
 
     post("/login") {
-        call.checkForDeviceId()
         responseWithGenericData(call) {
+            call.checkForDeviceId()
             authService.loginWith(
                 call.receive(),
                 LoginType.EMAIL,
@@ -57,15 +57,15 @@ fun Route.authRoutes() {
     }
 
     post("/register") {
-        call.checkForDeviceId()
         responseWithGenericData(call) {
+            call.checkForDeviceId()
             authService.registerWith(call.receive(), call.deviceId())
         }
     }
 
     post("/token") {
-        call.checkForDeviceId()
         responseWithGenericData(call) {
+            call.checkForDeviceId()
             authService.recreateAccessToken(call.receive(), call.deviceId())
         }
     }
